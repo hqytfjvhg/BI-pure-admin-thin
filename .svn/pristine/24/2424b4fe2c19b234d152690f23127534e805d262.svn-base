@@ -1,0 +1,265 @@
+<template>
+  <el-row
+    :gutter="24"
+    justify="space-around"
+    type="flex"
+  >
+    <!--前20柱状图  -->
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+      opacity: 0,
+      y: 100
+    }"
+      :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+      style="padding-left:0;padding-right:0"
+    >
+      <el-card
+        class="bar-card"
+        shadow="never"
+      >
+        <div class="flex justify-between">
+          <span class="text-md font-medium">{{t('receivables.twotySalesTitle')}}</span>
+        </div>
+        <div class="flex justify-between items-start mt-3">
+          <div
+            id="twenty-bar"
+            style="width: 100%; height: 600px"
+            ref="twentyBarChart"
+          ></div>
+        </div>
+      </el-card>
+    </re-col>
+    <!-- 月份柱状 -->
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+      opacity: 0,
+      y: 100
+    }"
+      :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+      style="padding-left:0;padding-right:0"
+    >
+      <el-card
+        class="bar-card"
+        shadow="never"
+      >
+        <div class="flex justify-between">
+          <span class="text-md font-medium">{{t('receivables.monthSalesTitle')}}</span>
+        </div>
+        <div class="flex justify-between items-start mt-3">
+          <div
+            id="month-bar"
+            style="width: 100%; height: 450px"
+            ref="monthBarChart"
+          ></div>
+        </div>
+      </el-card>
+    </re-col>
+  </el-row>
+</template>
+<script setup>
+import ReCol from "@/components/ReCol";
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import * as echarts from 'echarts';
+import { getSalesData } from "@/api/dataBoard/dataBoard";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
+// 前二十名应收账款客户 图表
+let twentyBarChart = ref(null)
+const receivableBar = (arr) => {
+  let xData = []
+  let yData = []
+  arr.forEach(op => {
+    yData.push((op.totalData / 1000000).toFixed(2))
+    xData.push(op.countryName)
+  })
+  let myChart = echarts.init(document.getElementById("twenty-bar"));
+  document.getElementById("twenty-bar").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t('receivables.twotysales'),
+      left: 'center',
+      textStyle: {
+
+      }
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow",
+      },
+    },
+    // legend: {
+    //   top: '2%',
+    //   icon: 'rect',
+    //   left: '2%'
+    // },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: '10%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      data: xData,
+      axisLabel: {
+        rotate: 45 // 将标签倾斜45度
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: 'US$m',
+      nameTextStyle: {
+        fontWeight: '600'
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: 'bar',
+        barWidth: 20,
+      },
+    ]
+  })
+}
+// 每月应收账款图表
+let monthBarChart = ref(null)
+const receivableMonthBar = (arr) => {
+  let xData = []
+  let yData = []
+  arr.forEach(op => {
+    yData.push((op.total / 1000000).toFixed(2))
+    xData.push(op.dateString)
+  })
+  let myChart = echarts.init(document.getElementById("month-bar"));
+  // document.getElementById("month-bar").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t('receivables.monthsales'),
+      left: 'center',
+      textStyle: {
+
+      }
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow",
+      },
+    },
+    // legend: {
+    //   top: '2%',
+    //   icon: 'rect',
+    //   left: '2%'
+    // },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: '10%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      data: xData,
+    },
+    yAxis: {
+      type: 'value',
+      name: 'US$m',
+      nameTextStyle: {
+        fontWeight: '600'
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: 'bar',
+        barWidth: 50,
+      },
+      {
+        type: 'line',
+        data: yData,
+        tooltip: {
+          trigger: 'none'
+        }
+      }
+    ]
+  })
+}
+// 获取应收账款数据
+const getData = () => {
+  getSalesData().then(res => {
+    let twentyArr = res.data.countrySaleDataList
+    let monthArr = res.data.monthDatatList
+    nextTick(() => {
+      receivableBar(twentyArr)
+      receivableMonthBar(monthArr)
+    })
+  })
+}
+onMounted(() => {
+  // 监听语言切换，重新渲染图表
+  getData()
+  window.addEventListener("setItemEvent", (e) => {
+    getData()
+  });
+})
+
+onUnmounted(() => {
+  // 移除对 sessionStorage 的监听
+  window.removeEventListener("setItemEvent", () => { });
+})
+
+</script>
+<style lang="scss" scoped>
+:deep(.el-card) {
+  --el-card-border-color: none;
+
+  /* 解决概率进度条宽度 */
+  .el-progress--line {
+    width: 85%;
+  }
+
+  /* 解决概率进度条字体大小 */
+  .el-progress-bar__innerText {
+    font-size: 15px;
+  }
+
+  /* 隐藏 el-scrollbar 滚动条 */
+  .el-scrollbar__bar {
+    display: none;
+  }
+
+  /* el-timeline 每一项上下、左右边距 */
+  .el-timeline-item {
+    margin: 0 6px;
+  }
+}
+
+.main-content {
+  margin: 20px 20px 0 !important;
+  background: none !important;
+  padding: 0 !important;
+}
+</style>

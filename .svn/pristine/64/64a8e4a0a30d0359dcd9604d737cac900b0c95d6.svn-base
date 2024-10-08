@@ -1,0 +1,53 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "experimentalDecorators": true,
+    "strictFunctionTypes": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "allowJs": false,
+    "resolveJsonModule": true,
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "@build/*": [
+        "build/*"
+      ]
+    },
+    "types": [
+      "node",
+      "vite/client",
+      "element-plus/global",
+      "@pureadmin/table/volar",
+      "@pureadmin/descriptions/volar"
+    ]
+  },
+  "include": [
+    "mock/*.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "types/*.d.ts",
+    "vite.config.js"
+, "src/views/login/utils/motion.js", "src/views/login/utils/rule.js", "src/views/login/utils/static.js", "src/api/user.js", "src/api/routes.js", "src/components/ReText/index.js", "src/components/ReDialog/index.js", "src/components/ReAuth/index.js", "src/components/ReCol/index.js", "src/components/ReAuth/src/auth.tsx", "src/config/index.js", "src/directives/auth/index.js", "src/directives/copy/index.js", "src/directives/longpress/index.js", "src/directives/optimize/index.js", "src/directives/index.js", "src/directives/ripple/index.js", "src/layout/theme/index.js", "src/layout/hooks/useBoolean.js", "src/layout/hooks/useLayout.js", "src/layout/hooks/useDataThemeChange.js", "src/layout/hooks/useTag.js", "src/layout/hooks/useNav.js", "src/plugins/echarts.js", "src/plugins/elementPlus.js", "src/store/index.js", "src/store/modules/app.js", "src/store/utils.js", "src/store/modules/user.js", "src/store/modules/settings.js", "src/store/modules/permission.js", "src/store/modules/multiTags.js", "src/store/modules/epThemejs", "src/utils/auth.js", "src/utils/globalPolyfills.js", "src/utils/message.js", "src/utils/mitt.js", "src/utils/preventDefault.js", "src/utils/tree.js", "src/utils/sso.js", "src/plugins/i18n.js", "src/main.js", "src/router/index.js", "src/components/ReIcon/index.js", "src/layout/hooks/useTranslationLang.js", "src/router/modules/error.js", "src/router/modules/home.js", "src/router/modules/remaining.js", "src/router/utils.js", "src/utils/http/index.js"  ],
+  "exclude": [
+    "dist",
+    "**/*.js",
+    "node_modules"
+  ]
+}

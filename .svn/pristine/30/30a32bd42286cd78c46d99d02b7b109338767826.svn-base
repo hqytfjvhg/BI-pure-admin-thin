@@ -1,0 +1,34 @@
+// import { $t } from "@/plugins/i18n";
+// const Layout = () => import("@/layout/index.vue");
+
+export default {
+  path: "/dataBoard",
+  meta: {
+    title: "menus.dataBoard",
+    icon: "ep:lollipop",
+    rank: 10
+  },
+
+  children: [
+    // 应收账款
+    {
+      path: "/dataBoard/receivables",
+      name: "receivables",
+      component: () => import("@/views/dataBoard/receivables.vue"),
+      meta: {
+        title: "menus.receivables",
+        // roles: ["admin", "common"]
+      }
+    },
+    // 销售额
+    {
+      path: "/dataBoard/saleroom",
+      name: "saleroom",
+      component: () => import("@/views/dataBoard/saleroom.vue"),
+      meta: {
+        title: "menus.saleroom"
+        // roles: ["admin", "common"]
+      }
+    },
+  ]
+};

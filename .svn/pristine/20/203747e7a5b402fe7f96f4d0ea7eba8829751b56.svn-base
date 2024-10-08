@@ -1,0 +1,189 @@
+const Layout = () => import("@/layout/index.vue");
+
+// 基础资料管理
+export default {
+  path: "/permission",
+  component: Layout,
+  name: "Permission",
+  meta: {
+    title: "menus.purePermission",
+    icon: "ep:lollipop",
+    rank: 5,
+    roles: ["ROOT"]
+  },
+  children: [
+    // {
+    //   path: "/permission/page/index",
+    //   name: "PermissionPage",
+    //   component: () => import("@/views/permission/page/index.vue"),
+    //   meta: {
+    //     title: "menus.purePermissionPage"
+    //     // roles: ["admin", "common"]
+    //   }
+    // },
+    // {
+    //   path: "/permission/button/index",
+    //   name: "PermissionButton",
+    //   component: () => import("@/views/permission/button/index.vue"),
+    //   meta: {
+    //     title: "menus.purePermissionButton"
+    //     // roles: ["admin", "common"],
+    //     // auths: [
+    //     //   "permission:btn:add",
+    //     //   "permission:btn:edit",
+    //     //   "permission:btn:delete"
+    //     // ]
+    //   }
+    // },
+    {
+      path: "/permission/user",
+      name: "PermissionUser",
+      redirect: "/permission/user/index",
+      // component: () => import("@/views/permission/user/index.vue"),
+      meta: {
+        title: "menus.purePermissionUser"
+        // roles: ["admin", "common"]
+      },
+      children: [
+        {
+          path: "/permission/user/index",
+          name: "PermissionUserList",
+          component: () => import("@/views/permission/user/index.vue"),
+          meta: {
+            title: "menus.purePermissionUserList"
+            // roles: ["admin", "common"]
+          }
+        },
+        {
+          path: "/permission/user/role",
+          name: "PermissionUserRole",
+          component: () => import("@/views/permission/user/role.vue"),
+          meta: {
+            title: "menus.purePermissionUserRole"
+            // roles: ["admin", "common"]
+          }
+        }
+      ]
+    },
+    {
+      path: "/permission/resource",
+      name: "PermissionResource",
+      redirect: "/permission/resource/index",
+      // component: () => import("@/views/permission/resource/index.vue"),
+      meta: {
+        title: "menus.purePermissionResource"
+        // roles: ["admin", "common"]
+      },
+      children: [
+        {
+          path: "/permission/resource/index",
+          name: "PermissionResourceList",
+          component: () => import("@/views/permission/resource/index.vue"),
+          meta: {
+            title: "menus.purePermissionResourceList"
+            // roles: ["admin", "common"]
+          }
+        },
+        {
+          path: "/permission/resource/levelFour",
+          name: "PermissionResourceLevelFour",
+          component: () => import("@/views/permission/resource/levelFour.vue"),
+          meta: {
+            title: "menus.purePermissionResourceLevelFour"
+            // roles: ["admin", "common"]
+          }
+        }
+      ]
+    },
+    {
+      path: "/permission/distributors",
+      name: "PermissionDistributors",
+      redirect: "/permission/distributors/index",
+      // component: () => import("@/views/permission/distributors/index.vue"),
+      meta: {
+        title: "menus.purePermissionDistributors"
+        // roles: ["admin", "common"]
+      },
+      children: [
+        {
+          path: "/permission/distributors/index",
+          name: "PermissionDistributorsList",
+          component: () => import("@/views/permission/distributors/index.vue"),
+          meta: {
+            title: "menus.purePermissionDistributorsList"
+            // roles: ["admin", "common"]
+          }
+        },
+        {
+          path: "/permission/distributors/budget",
+          name: "PermissionDistributorsBudget",
+          component: () => import("@/views/permission/distributors/budget.vue"),
+          meta: {
+            title: "menus.purePermissionDistributorsBudget"
+            // roles: ["admin", "common"]
+          }
+        }
+      ]
+    },
+    {
+      path: "/permission/product",
+      name: "PermissionProduct",
+      redirect: "/permission/product/index",
+      // component: () => import("@/views/permission/product/index.vue"),
+      meta: {
+        title: "menus.purePermissionProduct"
+        // roles: ["admin", "common"]
+      },
+      children: [
+        {
+          path: "/permission/product/index",
+          name: "PermissionProductList",
+          component: () => import("@/views/permission/product/index.vue"),
+          meta: {
+            title: "menus.purePermissionProductList"
+            // roles: ["admin", "common"]
+          }
+        },
+        {
+          path: "/permission/product/attribute",
+          name: "PermissionProductAttribute",
+          component: () => import("@/views/permission/product/attribute.vue"),
+          meta: {
+            title: "menus.purePermissionProductAttribute"
+            // roles: ["admin", "common"]
+          }
+        }
+      ]
+    },
+    {
+      path: "/permission/log",
+      name: "PermissionLog",
+      redirect: "/permission/log/index",
+      // component: () => import("@/views/permission/product/index.vue"),
+      meta: {
+        title: "menus.purePermissionLog"
+        // roles: ["admin", "common"]
+      },
+      children: [
+        {
+          path: "/permission/log/index",
+          name: "PermissionLogList",
+          component: () => import("@/views/permission/log/index.vue"),
+          meta: {
+            title: "menus.purePermissionLogList"
+            // roles: ["admin", "common"]
+          }
+        }
+        // {
+        //   path: "/permission/product/attribute",
+        //   name: "PermissionProductAttribute",
+        //   component: () => import("@/views/permission/product/attribute.vue"),
+        //   meta: {
+        //     title: "menus.purePermissionProductAttribute"
+        //     // roles: ["admin", "common"]
+        //   }
+        // }
+      ]
+    }
+  ]
+};

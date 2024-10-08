@@ -1,0 +1,35 @@
+import { http } from "@/utils/http";
+//第一个图表
+export const getOneData = (name, timeArr) => {
+  let startDate = "";
+  let endDate = "";
+  let newDateStr = "";
+  if (timeArr.length > 0) {
+    startDate = timeArr[0];
+    endDate = timeArr[1];
+    let currentMonth = new Date(endDate).getMonth();
+    let currentyear = new Date(endDate).getFullYear();
+    let nextYear = currentyear + 1;
+    let nextMonth = ((currentMonth + 1) % 12) + 1;
+    let newNumber = nextMonth < 10 ? "0" + nextMonth : nextMonth;
+    let newYear = currentMonth < 11 ? currentyear : nextYear;
+    let parts = endDate.split("-");
+    if (parts.length > 2) {
+      parts[1] = newNumber; // 替换
+      parts[0] = newYear;
+    }
+    newDateStr = parts.join("-");
+  }
+  return http.request(
+    "POST",
+    `/saleData/getProductSaleDataFromStartToCurrent?productName=${name}&startDate=${startDate}&endDate=${newDateStr}`
+  );
+};
+//第二个图表
+export const getTwoData = data => {
+  return http.request(
+    "POST",
+    "/saleData/getTopNumberProductSaleMoneyByCurrentTime",
+    { data }
+  );
+};

@@ -1,0 +1,190 @@
+<template>
+  <div>
+    <el-form :inline="true">
+      <el-form-item>
+        <el-button type="success" @click="handleAddSeries">{{
+          t("permission.product.addSeries")
+        }}</el-button></el-form-item
+      >
+      <el-form-item>
+        <el-button type="success" @click="handleAddFunction">{{
+          t("permission.product.addFunction")
+        }}</el-button></el-form-item
+      >
+      <el-form-item>
+        <el-button type="primary" @click="getAllAttributes">{{
+          t("status.ref")
+        }}</el-button></el-form-item
+      ></el-form
+    >
+
+    <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
+      <el-tab-pane
+        v-for="(item, index) in allAttribute"
+        :key="item"
+        :label="t(attribute[index].label)"
+        :name="attribute[index].name"
+      >
+        <el-table :data="item" border height="100%">
+          <el-table-column :label="t('status.index')" type="index" width="80" />
+          <el-table-column :label="t('permission.product.name')" prop="name" />
+          <el-table-column
+            :label="t('permission.product.remark')"
+            prop="remark"
+          />
+          <el-table-column :label="t('status.operate')">
+            <template #default="{ row }">
+              <el-button
+                type="primary"
+                @click="
+                  activeName == 'series'
+                    ? handleEdit(row, 'series')
+                    : handleEdit(row, 'function')
+                "
+              >
+                {{ t("status.edit") }}</el-button
+              ></template
+            >
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+    </el-tabs>
+
+    <Dialog :dialog="dialog" @confirm="submitAttribute">
+      <el-form ref="ruleForm" :model="editFormData" :rules="rules">
+        <el-form-item :label="t('permission.product.name')" prop="name">
+          <el-input v-model="editFormData.name" />
+        </el-form-item>
+        <el-form-item :label="t('permission.product.remark')" prop="remark">
+          <el-input v-model="editFormData.remark" />
+        </el-form-item>
+      </el-form>
+    </Dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from "vue";
+import {
+  getAllSeries,
+  getAllFunction,
+  addSeries,
+  addFunction,
+  updateSeries,
+  updateFunction
+} from "@/api/permission/product";
+import { useI18n } from "vue-i18n";
+import Dialog from "@/components/dialog/index.vue";
+import { ElMessage } from "element-plus";
+
+const { t } = useI18n();
+const activeName = ref("series");
+const attribute = reactive([
+  { label: "permission.product.series", name: "series" },
+  { label: "permission.product.function", name: "function" }
+]);
+
+//获取系列和功能的表格数据
+const allAttribute = ref([]);
+const getAllAttributes = async () => {
+  allAttribute.value = [];
+  await getAllSeries().then(res => {
+    if (res.success) {
+      allAttribute.value.push(res.data);
+    }
+  });
+  await getAllFunction().then(res => {
+    if (res.success) {
+      allAttribute.value.push(res.data);
+    }
+  });
+  console.log(allAttribute.value);
+};
+
+const dialog = reactive({
+  show: false,
+  title: "",
+  width: "50%"
+});
+
+//编辑
+const editFormData = ref({});
+const type = ref(null);
+const handleEdit = (row, attributeType) => {
+  dialog.show = true;
+  dialog.title = t("permission.product.editInfo");
+  editFormData.value = row;
+  type.value = attributeType;
+};
+
+//新增系列
+const handleAddSeries = () => {
+  dialog.show = true;
+  dialog.title = t("permission.product.addSeries");
+  editFormData.value = {};
+};
+
+//新增功能
+const handleAddFunction = () => {
+  dialog.show = true;
+  dialog.title = t("permission.product.addFunction");
+  editFormData.value = {};
+};
+
+const rules = {
+  name: [
+    {
+      required: true,
+      message: t("permission.product.inputNameReg"),
+      trigger: "blur"
+    }
+  ]
+};
+//新增或修改确定按钮
+const ruleForm = ref(null);
+const submitAttribute = async () => {
+  if (ruleForm.value) {
+    await ruleForm.value.validate(valid => {
+      if (valid) {
+        //系列
+        if (dialog.title == t("permission.product.addSeries")) {
+          addSeries(editFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+            }
+          });
+        } else if (dialog.title == t("permission.product.addFunction")) {
+          addFunction(editFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+            }
+          });
+        }
+        if (type.value == "series") {
+          updateSeries(editFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+            }
+          });
+        } else if (type.value == "function") {
+          updateFunction(editFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+            }
+          });
+        }
+      }
+    });
+  }
+};
+
+onMounted(() => {
+  getAllAttributes();
+});
+</script>
+
+<style lang="scss" scoped></style>

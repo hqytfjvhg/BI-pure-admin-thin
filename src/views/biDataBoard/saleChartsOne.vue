@@ -1,0 +1,678 @@
+<template>
+  <el-row :gutter="24" justify="space-around" type="flex">
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0"
+    >
+      <el-card class="bar-card" shadow="never">
+        <div class="flex justify-between">
+          <!-- <span class="font-medium text-md">{{
+            t("salesBoard.sales")
+          }}</span> -->
+          <el-form
+            :inline="true"
+            :model="formData"
+            ref="ruleForm"
+            :rules="rules"
+          >
+            <el-form-item :label="t('salesBoard.common.date')" prop="date">
+              <el-date-picker
+                type="month"
+                v-model="dateString"
+                format="YYYY-MM"
+                value-format="YYYY-MM-DD"
+                :disabled="true"
+                style="width: 100px"
+              />--
+              <el-date-picker
+                v-model="formData.date"
+                type="month"
+                placeholder="Pick a Date"
+                format="YYYY-MM"
+                value-format="YYYY-MM-DD"
+                style="width: 120px"
+                @change="handleChangeDate"
+                :disabled-date="disabledDate"
+              />
+            </el-form-item>
+            <el-form-item
+              :label="t('salesBoard.common.customer')"
+              prop="customer"
+            >
+              <!-- <el-select
+                v-model="formData.customer"
+                style="width: 240px"
+                filterable
+                collapse-tags
+                clearable
+                @change="changeDealer"
+              >
+                <el-option
+                  v-for="item in customerOptions"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                />
+              </el-select> -->
+              <el-cascader
+                v-model="formData.customer"
+                :show-all-levels="false"
+                :options="customerOptions"
+                filterable
+                :filter-method="filterMethod"
+                clearable
+                :props="{ children: 'options', label: 'label', value: 'value' }"
+              /> </el-form-item
+            ><el-form-item
+              ><el-button type="primary" @click="toSearch">{{
+                t("status.inquire")
+              }}</el-button></el-form-item
+            >
+            <el-form-item style="color: #67c23a"
+              >{{ t("salesBoard.common.dateStr") }}
+              {{ locale === "zh" ? dateString : transformDate(dateString)
+              }}{{ "~" + dateTitle }}</el-form-item
+            >
+          </el-form>
+        </div>
+        <div class="flex items-start justify-between mt-3">
+          <el-row style="width: 100%; height: 600px">
+            <el-col :span="8">
+              <div id="salesOne-bar" style="width: 100%; height: 600px" />
+            </el-col>
+            <el-col :span="8">
+              <div id="salesTwo-bar" style="width: 100%; height: 600px" />
+            </el-col>
+            <el-col :span="8">
+              <div id="salesThree-bar" style="width: 100%; height: 600px" />
+            </el-col>
+          </el-row>
+          <!-- <div
+            id="sales-bar"
+            ref="salesBar"
+            style="width: 100%; height: 600px"
+          /> -->
+        </div>
+      </el-card>
+    </re-col>
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0; margin-top: 20px"
+    >
+      <el-card class="bar-card" shadow="never">
+        <!-- <div class="flex justify-between">
+          <span class="font-medium text-md" v-if="formData?.customer">{{
+            dealerTitle + t("salesBoard.saleChartsOne.rolling")
+          }}</span>
+        </div> -->
+        <div class="flex items-start justify-between mt-3">
+          <div
+            id="rolling-bar"
+            ref="rollingBar"
+            style="width: 100%; height: 450px"
+          />
+        </div>
+      </el-card>
+    </re-col>
+  </el-row>
+</template>
+
+<script setup>
+import ReCol from "@/components/ReCol";
+import { reactive, ref, onMounted, nextTick, onUnmounted, computed } from "vue";
+import { useI18n } from "vue-i18n";
+import * as echarts from "echarts";
+import { getRealSaleDataToForecastData } from "@/api/biDataBoard/saleChartsOne";
+import { selectDistributor } from "@/api/permission/distributors";
+import { storageLocal } from "@pureadmin/utils";
+import { distributorList } from "@/utils/distributor";
+import { transformDate } from "@/utils/transformDate";
+
+const { t, locale } = useI18n();
+const rate = ["US$m", "USD", "CNY"];
+const cnyRate = storageLocal().getItem("user-info")?.cnyRate;
+
+//获取经销商
+const customerOptions = distributorList();
+
+//模糊查询经销商
+const filterMethod = (node, key) => {
+  const lowerCaseQuery = key.toLowerCase();
+  const lowerCaseLabel = node.label.toLowerCase();
+  return lowerCaseLabel.includes(lowerCaseQuery);
+};
+
+const transTime = date => {
+  let year = date.getFullYear();
+  let month = ("0" + (date.getMonth() + 1)).slice(-2); // 月份是从0开始的，所以需要加1；同时补零
+  let day = ("0" + date.getDate()).slice(-2); // 日期补零
+  return year + "-" + month + "-" + day;
+};
+const formData = reactive({
+  date: transTime(new Date()),
+  // date: [new Date().getFullYear() + "-01-01", transTime(new Date())],
+  customer: customerOptions[0]?.options[0]?.value
+});
+const dateString = new Date().getFullYear() + "-01-01";
+
+//图表一 销售数据与预期数据
+let salesBar = ref(null);
+// const titleData = ref([
+//   t("salesBoard.saleChartsOne.forecast"),
+//   t("salesBoard.saleChartsOne.lastYear"),
+//   t("salesBoard.saleChartsOne.samePeriod")
+// ]);
+
+const xData = ref([]);
+//日期展示
+const dateTitle = ref("");
+// 选中时间
+const handleChangeDate = val => {
+  xData.value = [
+    // [
+    //   `1-${new Date(val).getMonth() + 1 + t("salesBoard.saleChartsOne.forecastX")}`,
+    //   `1-${new Date(val).getMonth() + 1 + t("salesBoard.saleChartsOne.forecastX")}`
+    // ],
+    // [
+    //   `1-${new Date(val).getMonth() + 1 + t("salesBoard.saleChartsOne.lastYearX")}`,
+    //   `1-${new Date(val).getMonth() + 1 + t("salesBoard.saleChartsOne.forecastX")}`
+    // ],
+    [
+      "Forecast",
+      `${new Date(val).getFullYear() + t("salesBoard.saleChartsOne.samePeriodX")}`
+    ],
+    [
+      `${new Date(val).getFullYear() - 1 + t("salesBoard.saleChartsOne.samePeriodX")}`,
+      `${new Date(val).getFullYear() + t("salesBoard.saleChartsOne.samePeriodX")}`
+    ],
+    [
+      `${new Date(val).getFullYear() - 1 + t("salesBoard.saleChartsOne.samePeriodX")}`,
+      `${new Date(val).getFullYear() + t("salesBoard.saleChartsOne.samePeriodX")}`
+    ]
+  ];
+
+  //把日期绑定到月份最后一天
+  if (val) {
+    const year = new Date(val).getFullYear();
+    const month = new Date(val).getMonth() + 1;
+    const day = new Date(year, month, 0).getDate();
+    //月份和day补零
+    if (locale.value === "zh") {
+      dateTitle.value = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    } else {
+      dateTitle.value = `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
+    }
+  }
+};
+
+const disabledDate = time => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const selectedYear = time.getFullYear();
+
+  // 只允许选择当前年的月份
+  return selectedYear !== currentYear;
+};
+
+// 选中经销商
+// let checkDealer = ref("");
+// const changeDealer = val => {
+//   checkDealer.value = val;
+// };
+
+// 查询事件
+let dealerTitle = ref(formData.customer);
+const toSearch = () => {
+  dealerTitle.value = formData.customer[1];
+  getData();
+};
+
+const salesBarOne = ref(rate[1]);
+const salesBarTwo = ref(rate[1]);
+const salesBarThree = ref(rate[1]);
+const sales = (arr, index, title) => {
+  let option = {
+    title: {
+      text: title,
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData.value[index]
+      // axisLabel: {
+      //   rotate: 45 // 将标签倾斜45度
+      // }
+    },
+    yAxis: {
+      type: "value",
+      name:
+        index === 0
+          ? salesBarOne.value
+          : index === 1
+            ? salesBarTwo.value
+            : salesBarThree.value,
+      nameTextStyle: {
+        fontWeight: "600"
+      },
+      axisLabel: {
+        fontSize: 14
+      }
+    },
+    toolbox: {
+      show: true,
+      itemSize: 14,
+      itemGap: 2,
+      feature: {
+        myTool1: {
+          show: true, //是否显示
+          title: "US$m", //鼠标悬空的提示文字
+          icon: "path://M337.6384 303.04h85.1072L488.128 482.56c8.3072 23.872 15.5648 49.3184 23.36 74.24h2.56c8.2944-24.9088 15.0656-50.3552 23.36-74.24l63.8208-179.5328h85.1072v384h-70.0288V526.6944c0-36.3264 5.696-89.7792 9.3312-126.0928h-2.0736l-31.1296 90.2784-59.1616 161.3824h-44.1088L429.504 490.88 398.8864 400.64H396.8c3.6352 36.3136 9.856 89.7664 9.856 126.0928v160.3072h-69.0176z",
+          onclick: e => {
+            if (index === 0) {
+              salesBarOne.value = "US$m";
+            } else if (index === 1) {
+              salesBarTwo.value = "US$m";
+            } else if (index === 2) {
+              salesBarThree.value = "US$m";
+            }
+            getData();
+          }
+        },
+        myTool2: {
+          show: true, //是否显示
+          title: "USD", //鼠标悬空的提示文字
+          icon: "path://M568.612571 493.275429l-16.603428-5.193143V196.754286l31.670857 11.190857c33.206857 11.702857 59.830857 35.620571 78.848 70.582857 2.998857 4.461714 9.728 6.948571 19.529143 7.314286a19.309714 19.309714 0 0 0 16.749714-10.24c3.803429-10.24 4.534857-18.578286 1.901714-22.893715-32.694857-54.125714-76.288-86.893714-129.609142-97.426285l-19.017143-3.803429v-55.222857a29.696 29.696 0 0 0-5.412572-19.017143C545.426286 76.068571 541.257143 73.142857 528.822857 73.142857c-8.045714 0-13.897143 1.828571-17.846857 5.339429-2.925714 2.925714-4.900571 9.654857-5.266286 17.846857v57.051428l-21.211428 2.340572c-43.300571 4.534857-78.994286 21.357714-106.422857 50.102857-31.817143 31.817143-48.274286 75.044571-48.932572 128.512 0 85.796571 52.150857 142.994286 159.451429 174.957714l17.115428 4.973715v314.294857l-30.427428-8.777143c-38.912-11.264-71.460571-36.278857-96.768-74.24-5.339429-7.753143-13.385143-11.556571-25.088-11.995429-7.899429 0-11.556571 2.340571-14.043429 8.338286-3.437714 12.288-2.852571 22.162286 1.682286 29.988571 34.742857 54.857143 83.382857 87.771429 144.603428 97.718858l20.041143 3.218285v54.857143c0 9.216 1.755429 15.725714 5.266286 19.017143 1.316571 1.243429 5.558857 4.169143 17.846857 4.169143 6.582857 0 12.434286-2.048 17.92-6.217143 3.510857-2.706286 5.266286-8.411429 5.266286-16.969143v-54.710857l19.748571-3.364571c38.4-6.582857 72.557714-23.698286 101.668572-50.761143 35.913143-34.011429 54.491429-77.092571 55.149714-128 0-98.816-52.370286-163.474286-159.963429-197.558857z m-62.902857-15.579429l-33.792-15.652571c-63.049143-29.330286-95.524571-72.265143-96.548571-127.707429 0-39.716571 12.288-72.557714 36.278857-97.426286 15.579429-17.554286 38.034286-28.745143 66.56-33.353143l27.501714-4.388571v278.528z m133.851429 310.198857c-15.506286 13.897143-34.230857 24.868571-55.734857 32.548572l-31.817143 11.410285V525.970286l34.596571 17.334857c62.610286 31.817143 94.793143 81.408 95.670857 147.456 0 38.912-14.336 71.606857-42.642285 97.133714z",
+          onclick: e => {
+            if (index === 0) {
+              salesBarOne.value = "USD";
+            } else if (index === 1) {
+              salesBarTwo.value = "USD";
+            } else if (index === 2) {
+              salesBarThree.value = "USD";
+            }
+            getData();
+          }
+        },
+        myTool3: {
+          show: true, //是否显示
+          title: "CNY", //鼠标悬空的提示文字
+          icon: "path://M675.861 192l45.611 44.907-166.997 169.6H792v64H544v144.597h248v64H544v176.597h-64V679.104H232v-64h248V470.507H232v-64h237.483l-166.955-169.6L348.138 192 512 358.464 675.861 192z",
+          onclick: e => {
+            if (index === 0) {
+              salesBarOne.value = "CNY";
+            } else if (index === 1) {
+              salesBarTwo.value = "CNY";
+            } else if (index === 2) {
+              salesBarThree.value = "CNY";
+            }
+            getData();
+          }
+        }
+      }
+    },
+    series: [
+      {
+        data: arr,
+        type: "bar",
+        label: { show: true, position: "top" }
+      }
+    ]
+  };
+  if (index === 0) {
+    let myChartOne = echarts.init(document.getElementById("salesOne-bar"));
+    myChartOne.clear();
+    document
+      .getElementById("salesOne-bar")
+      .removeAttribute("_echarts_instance_");
+    option && myChartOne.setOption(option);
+  } else if (index === 1) {
+    let myChartTwo = echarts.init(document.getElementById("salesTwo-bar"));
+    myChartTwo.clear();
+    document
+      .getElementById("salesTwo-bar")
+      .removeAttribute("_echarts_instance_");
+    option && myChartTwo.setOption(option);
+  } else if (index === 2) {
+    let myChartThree = echarts.init(document.getElementById("salesThree-bar"));
+    myChartThree.clear();
+    document
+      .getElementById("salesThree-bar")
+      .removeAttribute("_echarts_instance_");
+
+    option && myChartThree.setOption(option);
+  }
+};
+
+//滚动12个月
+let rollingBar = ref(null);
+const salesroll = ref(rate[1]);
+const rolling = arr => {
+  let xData = [];
+  let yData = [];
+  if (arr.length > 0) {
+    arr.forEach(op => {
+      xData.push(locale.value === "zh" ? op.dateString : op.enDateString);
+      if (salesroll.value == "US$m") {
+        yData.push((op.total / 1000000).toFixed(4));
+      } else if (salesroll.value == "USD") {
+        yData.push(op.total);
+      } else if (salesroll.value == "CNY") {
+        yData.push((op.total * cnyRate).toFixed(2));
+      }
+    });
+  }
+
+  let myChart = echarts.init(document.getElementById("rolling-bar"));
+  myChart.clear();
+  document.getElementById("rolling-bar").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: dealerTitle.value + t("salesBoard.saleChartsOne.rolling"),
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    // legend: {
+    //   top: '2%',
+    //   icon: 'rect',
+    //   left: '2%'
+    // },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData
+      // axisLabel: {
+      //   rotate: 45 // 将标签倾斜45度
+      // }
+    },
+    yAxis: {
+      type: "value",
+      name: salesroll.value,
+      nameTextStyle: {
+        fontWeight: "600"
+      },
+      axisLabel: {
+        fontSize: 14
+      }
+    },
+    toolbox: {
+      show: true,
+      itemSize: 14,
+      feature: {
+        myTool1: {
+          show: true, //是否显示
+          title: "US$m", //鼠标悬空的提示文字
+          icon: "path://M337.6384 303.04h85.1072L488.128 482.56c8.3072 23.872 15.5648 49.3184 23.36 74.24h2.56c8.2944-24.9088 15.0656-50.3552 23.36-74.24l63.8208-179.5328h85.1072v384h-70.0288V526.6944c0-36.3264 5.696-89.7792 9.3312-126.0928h-2.0736l-31.1296 90.2784-59.1616 161.3824h-44.1088L429.504 490.88 398.8864 400.64H396.8c3.6352 36.3136 9.856 89.7664 9.856 126.0928v160.3072h-69.0176z",
+          onclick: e => {
+            salesroll.value = "US$m";
+            rolling(rollingData.value);
+          }
+        },
+        myTool2: {
+          show: true, //是否显示
+          title: "USD", //鼠标悬空的提示文字
+          icon: "path://M568.612571 493.275429l-16.603428-5.193143V196.754286l31.670857 11.190857c33.206857 11.702857 59.830857 35.620571 78.848 70.582857 2.998857 4.461714 9.728 6.948571 19.529143 7.314286a19.309714 19.309714 0 0 0 16.749714-10.24c3.803429-10.24 4.534857-18.578286 1.901714-22.893715-32.694857-54.125714-76.288-86.893714-129.609142-97.426285l-19.017143-3.803429v-55.222857a29.696 29.696 0 0 0-5.412572-19.017143C545.426286 76.068571 541.257143 73.142857 528.822857 73.142857c-8.045714 0-13.897143 1.828571-17.846857 5.339429-2.925714 2.925714-4.900571 9.654857-5.266286 17.846857v57.051428l-21.211428 2.340572c-43.300571 4.534857-78.994286 21.357714-106.422857 50.102857-31.817143 31.817143-48.274286 75.044571-48.932572 128.512 0 85.796571 52.150857 142.994286 159.451429 174.957714l17.115428 4.973715v314.294857l-30.427428-8.777143c-38.912-11.264-71.460571-36.278857-96.768-74.24-5.339429-7.753143-13.385143-11.556571-25.088-11.995429-7.899429 0-11.556571 2.340571-14.043429 8.338286-3.437714 12.288-2.852571 22.162286 1.682286 29.988571 34.742857 54.857143 83.382857 87.771429 144.603428 97.718858l20.041143 3.218285v54.857143c0 9.216 1.755429 15.725714 5.266286 19.017143 1.316571 1.243429 5.558857 4.169143 17.846857 4.169143 6.582857 0 12.434286-2.048 17.92-6.217143 3.510857-2.706286 5.266286-8.411429 5.266286-16.969143v-54.710857l19.748571-3.364571c38.4-6.582857 72.557714-23.698286 101.668572-50.761143 35.913143-34.011429 54.491429-77.092571 55.149714-128 0-98.816-52.370286-163.474286-159.963429-197.558857z m-62.902857-15.579429l-33.792-15.652571c-63.049143-29.330286-95.524571-72.265143-96.548571-127.707429 0-39.716571 12.288-72.557714 36.278857-97.426286 15.579429-17.554286 38.034286-28.745143 66.56-33.353143l27.501714-4.388571v278.528z m133.851429 310.198857c-15.506286 13.897143-34.230857 24.868571-55.734857 32.548572l-31.817143 11.410285V525.970286l34.596571 17.334857c62.610286 31.817143 94.793143 81.408 95.670857 147.456 0 38.912-14.336 71.606857-42.642285 97.133714z",
+          onclick: e => {
+            salesroll.value = "USD";
+            rolling(rollingData.value);
+          }
+        },
+        myTool3: {
+          show: true, //是否显示
+          title: "CNY", //鼠标悬空的提示文字
+          icon: "path://M675.861 192l45.611 44.907-166.997 169.6H792v64H544v144.597h248v64H544v176.597h-64V679.104H232v-64h248V470.507H232v-64h237.483l-166.955-169.6L348.138 192 512 358.464 675.861 192z",
+          onclick: e => {
+            salesroll.value = "CNY";
+            rolling(rollingData.value);
+          }
+        }
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: "line",
+        label: { show: true, position: "top" }
+      }
+    ]
+  });
+};
+
+// const getDistributor = () => {
+//   selectDistributor().then(res => {
+//     customerOptions.value = res.data;
+//   });
+// };
+
+const rules = computed(() => {
+  return {
+    date: [
+      {
+        required: true,
+        message: t("salesBoard.saleChartsTwo.dateReg"),
+        trigger: "change"
+      }
+    ],
+    customer: [
+      {
+        required: true,
+        message: t("salesBoard.saleChartsTwo.customerReg"),
+        trigger: "change"
+      }
+    ]
+  };
+});
+
+//获取数据
+const ruleForm = ref(null);
+const rollingData = ref([]);
+const getData = () => {
+  if (ruleForm.value) {
+    ruleForm.value.validate(valid => {
+      if (valid) {
+        formData.customer = Array.isArray(formData.customer)
+          ? formData.customer[1]
+          : formData.customer;
+        getRealSaleDataToForecastData(formData).then(res => {
+          if (res.data) {
+            let currentYearRealSaleData = null;
+            if (salesBarOne.value === "US$m") {
+              res.data.forecastSaleData = (
+                res.data.forecastSaleData / 1000000
+              ).toFixed(4);
+              currentYearRealSaleData = (
+                JSON.parse(JSON.stringify(res.data.currentYearRealSaleData)) /
+                1000000
+              ).toFixed(4);
+            } else if (salesBarOne.value == "USD") {
+              res.data.forecastSaleData = res.data.forecastSaleData;
+              currentYearRealSaleData = JSON.parse(
+                JSON.stringify(res.data.currentYearRealSaleData)
+              );
+            } else if (salesBarOne.value == "CNY") {
+              res.data.forecastSaleData = (
+                res.data.forecastSaleData * cnyRate
+              ).toFixed(2);
+              currentYearRealSaleData = (
+                JSON.parse(JSON.stringify(res.data.currentYearRealSaleData)) *
+                cnyRate
+              ).toFixed(2);
+            }
+            if (salesBarTwo.value === "US$m") {
+              res.data.lastYearRealSaleData = (
+                res.data.lastYearRealSaleData / 1000000
+              ).toFixed(4);
+              res.data.currentYearRealSaleData = (
+                JSON.parse(JSON.stringify(res.data.currentYearRealSaleData)) /
+                1000000
+              ).toFixed(4);
+            } else if (salesBarTwo.value === "USD") {
+              res.data.lastYearRealSaleData = res.data.lastYearRealSaleData;
+              res.data.currentYearRealSaleData = JSON.parse(
+                JSON.stringify(res.data.currentYearRealSaleData)
+              );
+            } else if (salesBarTwo.value === "CNY") {
+              res.data.lastYearRealSaleData = (
+                res.data.lastYearRealSaleData * cnyRate
+              ).toFixed(2);
+              res.data.currentYearRealSaleData = (
+                JSON.parse(JSON.stringify(res.data.currentYearRealSaleData)) *
+                cnyRate
+              ).toFixed(2);
+            }
+            if (salesBarThree.value === "US$m") {
+              res.data.lastYearCurrentMonthSaleData = (
+                res.data.lastYearCurrentMonthSaleData / 1000000
+              ).toFixed(4);
+              res.data.currentYearCurrentMonthSaleData = (
+                res.data.currentYearCurrentMonthSaleData / 1000000
+              ).toFixed(4);
+            } else if (salesBarThree.value === "USD") {
+              res.data.lastYearCurrentMonthSaleData =
+                res.data.lastYearCurrentMonthSaleData;
+              res.data.currentYearCurrentMonthSaleData =
+                res.data.currentYearCurrentMonthSaleData;
+            } else if (salesBarThree.value === "CNY") {
+              res.data.lastYearCurrentMonthSaleData = (
+                res.data.lastYearCurrentMonthSaleData * cnyRate
+              ).toFixed(2);
+              res.data.currentYearCurrentMonthSaleData = (
+                res.data.currentYearCurrentMonthSaleData * cnyRate
+              ).toFixed(2);
+            }
+
+            let salesOne = [res.data.forecastSaleData, currentYearRealSaleData];
+            let salesTwo = [
+              res.data.lastYearRealSaleData,
+              res.data.currentYearRealSaleData
+            ];
+            let salesThree = [
+              res.data.lastYearCurrentMonthSaleData,
+              res.data.currentYearCurrentMonthSaleData
+            ];
+            rollingData.value = res.data.rollMonthContentList;
+            nextTick(() => {
+              rolling(rollingData.value);
+              sales(salesOne, 0, t("salesBoard.saleChartsOne.forecast"));
+              sales(salesTwo, 1, t("salesBoard.saleChartsOne.lastYear"));
+              sales(
+                salesThree,
+                2,
+                t("salesBoard.saleChartsOne.samePeriod") +
+                  (new Date(formData.date).getMonth() + 1) +
+                  t("salesBoard.saleChartsOne.monthSales")
+              );
+            });
+          }
+        });
+      }
+    });
+  }
+};
+
+const side = computed(() => {
+  return window.scrollY;
+});
+
+onMounted(() => {
+  // getDistributor();
+  // 监听语言切换，重新渲染图表
+  handleChangeDate(new Date());
+  getData();
+  window.addEventListener("setItemEvent", e => {
+    getData();
+  });
+});
+
+onUnmounted(() => {
+  // 移除对 sessionStorage 的监听
+  window.removeEventListener("setItemEvent", () => {});
+});
+</script>
+
+<style lang="scss" scoped>
+:deep(.el-card) {
+  --el-card-border-color: none;
+
+  /* 解决概率进度条宽度 */
+  .el-progress--line {
+    width: 85%;
+  }
+
+  /* 解决概率进度条字体大小 */
+  .el-progress-bar__innerText {
+    font-size: 15px;
+  }
+
+  /* 隐藏 el-scrollbar 滚动条 */
+  .el-scrollbar__bar {
+    display: none;
+  }
+
+  /* el-timeline 每一项上下、左右边距 */
+  .el-timeline-item {
+    margin: 0 6px;
+  }
+}
+:deep(.el-form--inline .el-form-item) {
+  margin-right: 20px !important;
+}
+.main-content {
+  margin: 20px 20px 0 !important;
+  background: none !important;
+  padding: 0 !important;
+}
+</style>

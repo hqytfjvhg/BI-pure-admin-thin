@@ -1,0 +1,268 @@
+<template>
+  <div>
+    <Table
+      v-model:formData="formData"
+      :page="page"
+      :pageSizes="pageSizes"
+      :showIndex="true"
+      :showPage="true"
+      :tableData="tableData"
+      @refresh="getUserList"
+      @add="addUser"
+    >
+      <template #formItem>
+        <el-form-item :label="t('permission.user.userName')"
+          ><el-input v-model="formData.userName"
+        /></el-form-item>
+        <el-form-item :label="t('permission.user.roleCnName')"
+          ><el-input v-model="formData.roleId"
+        /></el-form-item>
+        <el-form-item>
+          <el-button type="success" @click="handleAdd('add')">{{
+            t("status.add")
+          }}</el-button></el-form-item
+        >
+      </template>
+      <template #columns>
+        <!-- <el-table-column prop="name" label="名称" /> -->
+        <el-table-column
+          prop="userName"
+          :label="t('permission.user.userName')"
+        />
+        <el-table-column
+          prop="roleCnName"
+          :label="t('permission.user.roleCnName')"
+        />
+        <el-table-column prop="loginIp" :label="t('permission.user.loginIp')" />
+        <el-table-column
+          prop="longinTime"
+          :label="t('permission.user.longinTime')"
+        />
+        <el-table-column :label="t('status.operate')">
+          <template #default="{ row }">
+            <el-text type="primary" @click="handleEdit(row, 'role')">{{
+              t("status.edit")
+            }}</el-text>
+            <el-text type="primary" @click="handleReset(row, 'pass')">{{
+              t("status.reset")
+            }}</el-text>
+            <el-text type="primary" @click="handleDel(row)">{{
+              t("status.del")
+            }}</el-text></template
+          >
+        </el-table-column>
+      </template>
+    </Table>
+    <Dialog :dialog="dialog" @confirm="submitAddUser">
+      <el-form ref="ruleForm" :model="addFormData" :rules="rules">
+        <el-form-item :label="t('login.pureUsername')" prop="userName">
+          <el-input
+            v-model="addFormData.userName"
+            :disabled="type === 'add' ? false : true"
+          />
+        </el-form-item>
+        <el-form-item
+          v-if="type == 'add' || type == 'pass'"
+          :label="t('login.purePassword')"
+          prop="password"
+        >
+          <el-input v-model="addFormData.password" />
+        </el-form-item>
+        <el-form-item
+          v-if="type == 'add' || type == 'role'"
+          :label="t('permission.user.role')"
+          prop="roleId"
+        >
+          <el-select v-model="addFormData.roleId">
+            <el-option
+              v-for="item in roleOption"
+              :key="item.roleId"
+              :label="item.name"
+              :value="item.roleId"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item
+          v-if="type == 'add'"
+          :label="t('permission.user.root')"
+          prop="root"
+        >
+          <el-radio-group v-model="addFormData.root">
+            <el-radio value="true">{{ t("permission.user.yes") }}</el-radio>
+            <el-radio value="false">{{ t("permission.user.no") }}</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+    </Dialog>
+  </div>
+</template>
+
+<script setup>
+import Table from "@/components/table/index.vue";
+import { reactive, ref, onMounted } from "vue";
+import {
+  selectByPage,
+  addUser,
+  deleteUserByIdList,
+  updateOneselfPassword,
+  updateUserById
+} from "@/api/permission/user";
+import { getAllRoleNameList } from "@/api/user";
+import Dialog from "@/components/dialog/index.vue";
+import { useI18n } from "vue-i18n";
+import { ElMessage, ElMessageBox } from "element-plus";
+
+const { t } = useI18n();
+
+//表格和条件查询表单的字段定义
+const page = reactive({
+  page: 1,
+  length: 50,
+  total: 0
+});
+const pageSizes = ref([50, 60, 70, 100]);
+const tableData = ref([]);
+const formData = ref({ userName: "", roleId: "" });
+
+//获取用户列表
+const getUserList = (formData = null) => {
+  const data = {
+    page: page.page,
+    length: page.length
+  };
+  if (formData) {
+    data.roleId = formData.roleId;
+    data.userName = formData.userName;
+  }
+  selectByPage(data).then(res => {
+    tableData.value = res.data.list;
+    page.total = res.data.totalCount;
+  });
+};
+
+//获取角色列表
+const roleOption = ref([]);
+const getRoleList = () => {
+  getAllRoleNameList().then(res => {
+    if (res.success) {
+      roleOption.value = res.data;
+    }
+  });
+};
+
+//新增用户的弹窗和函数
+const dialog = reactive({
+  show: false,
+  title: t("permission.user.addTitle"),
+  width: "50%"
+});
+
+const addFormData = ref({
+  userName: "",
+  password: "",
+  roleId: null,
+  root: null
+});
+const rules = {
+  userName: [
+    {
+      required: true,
+      message: t("permission.user.userNameReg"),
+      trigger: "blur"
+    }
+  ],
+  password: [
+    {
+      required: true,
+      message: t("permission.user.passwordReg"),
+      trigger: "blur"
+    }
+  ],
+  roleId: [
+    { required: true, message: t("permission.user.roleReg"), trigger: "change" }
+  ],
+  root: [
+    { required: true, message: t("permission.user.choose"), trigger: "change" }
+  ]
+};
+
+const handleAdd = str => {
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+  dialog.show = true;
+  type.value = str;
+};
+const ruleForm = ref(null);
+//提交
+const submitAddUser = () => {
+  if (ruleForm.value) {
+    ruleForm.value.validate(valid => {
+      if (valid) {
+        if (type.value == "add") {
+          addUser(addFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+              getUserList();
+            }
+          });
+        } else if (type.value == "pass") {
+          updateOneselfPassword(addFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+            }
+          });
+        } else if (type.value == "role") {
+          updateUserById(addFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+              getUserList();
+            }
+          });
+        }
+      }
+    });
+  }
+};
+
+//删除
+const handleDel = row => {
+  ElMessageBox.confirm(t("status.delReg"), "Warning", {
+    confirmButtonText: t("status.confirm"),
+    cancelButtonText: t("status.cancle"),
+    type: "warning"
+  }).then(() => {
+    deleteUserByIdList([row.id]).then(res => {
+      if (res.success) {
+        ElMessage.success(t("status.pureSuccess"));
+      }
+    });
+  });
+};
+const type = ref(null);
+//修改角色
+const handleEdit = (row, str) => {
+  dialog.title = t("permission.user.editRole");
+  type.value = str;
+  addFormData.value = row;
+  dialog.show = true;
+};
+
+//重置密码
+const handleReset = (row, str) => {
+  dialog.title = t("permission.user.editPass");
+  type.value = str;
+  addFormData.value = row;
+  dialog.show = true;
+};
+//初始化获取数据
+onMounted(() => {
+  getUserList();
+  getRoleList();
+});
+</script>
+
+<style lang="scss" scoped></style>

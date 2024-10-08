@@ -1,0 +1,495 @@
+<script setup lang="js">
+import { onMounted, ref, nextTick, onUnmounted } from "vue";
+import * as echarts from "echarts";
+import { useI18n } from "vue-i18n";
+import {
+  getTotalSaleMoneyTop10Product,
+  getLast12MonthTotalSaleMoneyTop10Product,
+  getLastThreeMonthSaleMoney,
+  getLastYearAndCurrentYearTotalSaleMoney,
+  getLast5YearTotalSaleMoney,
+  getAllSaleMoneyTop10DistributorName
+} from "@/api/home/index";
+
+defineOptions({
+  name: "Welcome"
+});
+const { t } = useI18n();
+const title = ref(false);
+
+//绘制图
+const paintPieOne = arr => {
+  let myPieOne = echarts.init(document.getElementById("pie-one"));
+  myPieOne.setOption({
+    title: {
+      text: t("home.lastFiveYear"),
+      textStyle: {
+        fontSize: 16,
+        fontWeight: "normal"
+      },
+      top: "bottom",
+      left: "center"
+    },
+    tooltip: {
+      trigger: "item"
+    },
+    grid: {
+      left: "3%",
+      bottom: "12%",
+      top: "3%",
+      containLabel: true
+    },
+
+    series: [
+      {
+        name: "",
+        type: "pie",
+        radius: "75%",
+        label: {
+          position: "inside",
+          color: "#fff",
+          width: 50
+        },
+        data: arr,
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: "rgba(0, 0, 0, 0.5)"
+          }
+        }
+      }
+    ]
+  });
+};
+let viewShow = true;
+const paintPieTwo = arr => {
+  let myPieTwo = echarts.init(document.getElementById("pie-two"));
+  myPieTwo.setOption({
+    title: {
+      text: t("home.lastMonth"),
+      textStyle: {
+        fontSize: 16,
+        fontWeight: "normal"
+      },
+      top: "bottom",
+      left: "center"
+    },
+    tooltip: {
+      trigger: "item"
+    },
+    grid: {
+      left: "3%",
+      bottom: "12%",
+      top: "3%",
+      containLabel: true
+    },
+    toolbox: {
+      feature: {
+        myTool: {
+          show: true, //是否显示
+          title: t("home.switch"), //鼠标悬空的提示文字
+          icon: "path://M853.333333 609.834667L652.501333 810.666667l-60.352-60.330667 55.168-55.146667-494.314666-0.021333v-85.333333H853.333333z m-499.498666-384l60.330666 60.330666L358.997333 341.333333H853.333333v85.333334H153.002667l200.832-200.832z", //这个是阿里icon svg 后 b的全部字符串
+          onclick: e => {
+            // e.option.series[0].label.show = !e.option.series[0].label.show; //设置show的值对图表进行切换
+            viewShow = !viewShow;
+            if (viewShow) {
+              paintPieTwo(pieTwoData.value.saleMoney);
+              paintBarTwo(barTwoData.value.saleMoney);
+            } else {
+              paintPieTwo(pieTwoData.value.qty);
+              paintBarTwo(barTwoData.value.qty);
+            }
+          }
+        }
+      }
+    },
+    series: [
+      {
+        name: "",
+        type: "pie",
+        radius: "75%",
+        label: {
+          position: "inside",
+          color: "#fff",
+          width: 50,
+          show: true
+        },
+        data: arr,
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: "rgba(0, 0, 0, 0.5)"
+          }
+        }
+      }
+    ]
+  });
+};
+const paintBarOne = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(item => {
+    yData.push((item.data / 1000000).toFixed(2));
+    xData.push(item.name);
+  });
+  let myBarOne = echarts.init(document.getElementById("bar-one"));
+  myBarOne.setOption({
+    title: {
+      text: t("home.topDistributor"),
+      left: "center",
+      top: "bottom",
+      textStyle: {
+        fontSize: 16,
+        fontWeight: "normal"
+      }
+    },
+    grid: {
+      left: "2%",
+      bottom: "12%",
+      containLabel: true
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        width: 50,
+        // interval: 1,
+        formatter: function (value) {
+          var re = /(.{1,5})(?=(?:\s|$))/g;
+          return value.replace(re, "$1\n"); // 每个字符换行，可根据实际需求调整
+        }
+      }
+    },
+    yAxis: {
+      type: "value",
+      name: "US$M"
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 30
+      }
+    ]
+  });
+};
+const paintBarTwo = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(item => {
+    yData.push(item.data);
+    xData.push(item.name);
+  });
+  let myBarTwo = echarts.init(document.getElementById("bar-two"));
+  myBarTwo.setOption({
+    title: {
+      text: t("home.topProduct"),
+      left: "center",
+      top: "bottom",
+      textStyle: {
+        fontSize: 16,
+        fontWeight: "normal"
+      }
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        width: 50,
+        interval: 1,
+        formatter: function (value) {
+          var re = /(.{1,10})(?=(?:\s|$))/g;
+          return value.replace(re, "$1\n"); // 每个字符换行，可根据实际需求调整
+        }
+      }
+    },
+    yAxis: {
+      type: "value"
+      // name: "US$M"
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 30
+      }
+    ]
+  });
+};
+const paintBarThree = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(item => {
+    yData.push((item.total / 1000000).toFixed(2));
+    xData.push(item.dateString);
+  });
+  let myBarThree = echarts.init(document.getElementById("bar-three"));
+  myBarThree.setOption({
+    title: {
+      text: t("home.lastThree"),
+      left: "center",
+      top: "bottom",
+      textStyle: {
+        fontSize: 16,
+        fontWeight: "normal"
+      }
+    },
+    grid: {
+      left: "2%",
+      bottom: "12%",
+      containLabel: true
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    xAxis: {
+      type: "category",
+      data: xData
+    },
+    yAxis: {
+      type: "value",
+      name: "US$M"
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 30
+      }
+    ]
+  });
+};
+
+//获取柱状图三的数据
+const getBarThree = () => {
+  getLastThreeMonthSaleMoney().then(res => {
+    nextTick(() => {
+      paintBarThree(res.data);
+    });
+  });
+};
+
+//获取饼图二的数据
+const pieTwoData = ref({});
+const getPieTwo = () => {
+  getLast12MonthTotalSaleMoneyTop10Product().then(res => {
+    res.data.saleMoney.forEach(item => {
+      item.value = item.data;
+    });
+    res.data.qty.forEach(item => {
+      item.value = item.data;
+    });
+    pieTwoData.value.saleMoney = res.data.saleMoney;
+    pieTwoData.value.qty = res.data.qty;
+    nextTick(() => {
+      paintPieTwo(res.data.saleMoney);
+    });
+  });
+};
+
+//获取柱状图二的数据
+const barTwoData = ref({});
+const getBarTwo = () => {
+  getTotalSaleMoneyTop10Product().then(res => {
+    barTwoData.value.xAxisOne = [];
+    barTwoData.value.xAxisTwo = [];
+    res.data.saleMoney.forEach(item => {
+      item.value = item.data;
+      barTwoData.value.xAxisOne.push(item.name);
+    });
+    res.data.qty.forEach(item => {
+      item.value = item.data;
+      barTwoData.value.xAxisTwo.push(item.name);
+    });
+    barTwoData.value.saleMoney = res.data.saleMoney;
+    barTwoData.value.qty = res.data.qty;
+    nextTick(() => {
+      paintBarTwo(res.data.saleMoney);
+    });
+  });
+};
+
+//直接获取三个值的数据
+const threeValue = ref({});
+const calculating = ref(false);
+let aa = "";
+const getThreeValue = () => {
+  getLastYearAndCurrentYearTotalSaleMoney().then(res => {
+    if (res.data.currentYearData?.data === -1) {
+      calculating.value = true;
+    } else {
+      threeValue.value = res.data;
+    }
+  });
+};
+//获取饼图一的数据
+const getPieOne = () => {
+  getLast5YearTotalSaleMoney().then(res => {
+    res.data.forEach(item => {
+      item.value = item.data;
+    });
+    nextTick(() => {
+      paintPieOne(res.data);
+    });
+  });
+};
+
+//获取柱状图一的数据
+const barOneData = ref([]);
+const getBarOne = () => {
+  getAllSaleMoneyTop10DistributorName().then(res => {
+    nextTick(() => {
+      paintBarOne(res.data);
+    });
+  });
+};
+
+const year = new Date().getFullYear() + "-1~" + new Date().getMonth();
+
+onMounted(() => {
+  getPieOne();
+  getPieTwo();
+  getBarOne();
+  getBarTwo();
+  getBarThree();
+  getThreeValue();
+  window.addEventListener("setItemEvent", e => {
+    getPieOne();
+    getPieTwo();
+    getBarOne();
+    getBarTwo();
+    getBarThree();
+  });
+});
+
+onUnmounted(() => {
+  // 移除对 sessionStorage 的监听
+  window.removeEventListener("setItemEvent", () => {});
+});
+</script>
+
+<template>
+  <div>
+    <el-row>
+      <el-col :span="12">
+        <el-row>
+          <el-col :span="12" class="col-style">
+            <div>
+              <h2>{{ t("home.overview") }}</h2>
+
+              <el-card class="border-box">
+                <div v-if="!calculating" class="center-box">
+                  <template v-if="JSON.stringify(threeValue) !== '{}'">
+                    <el-tooltip
+                      effect="light"
+                      placement="top"
+                      :content="`${year + $t('home.month') + $t('home.latest')}`"
+                    >
+                      <div>
+                        {{
+                          (threeValue.currentYearData?.data / 1000000).toFixed(
+                            2
+                          )
+                        }}
+                      </div>
+                    </el-tooltip>
+
+                    <el-tooltip
+                      effect="light"
+                      placement="top"
+                      :content="t('home.year')"
+                    >
+                      <div>
+                        {{
+                          (threeValue.lastYearData?.data / 1000000).toFixed(2)
+                        }}
+                      </div>
+                    </el-tooltip>
+                    <el-tooltip
+                      effect="light"
+                      placement="top"
+                      :content="t('home.value')"
+                    >
+                      <div>{{ threeValue.Compare }}%</div>
+                    </el-tooltip>
+                  </template>
+                </div>
+                <div v-else class="calculat">{{ t("home.calculat") }}</div>
+              </el-card>
+            </div>
+            <div id="bar-three" style="width: 100%; height: 400px" />
+          </el-col>
+          <el-col :span="12">
+            <div id="pie-one" style="width: 100%; height: 370px" />
+            <div id="pie-two" style="width: 100%; height: 400px" />
+          </el-col>
+        </el-row>
+      </el-col>
+      <el-col :span="12">
+        <div id="bar-one" style="width: 100%; height: 370px" />
+        <div id="bar-two" style="width: 100%; height: 400px" />
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.border-box {
+  margin-top: 20px;
+  // border: 2px solid black;
+  // display: flex;
+  // flex-direction: column;
+  // justify-content: space-around;
+  width: 80%;
+  min-width: 230px;
+  height: 300px;
+
+  :deep(.el-card__body) {
+    height: 100% !important;
+    // display: flex;
+    // flex-direction: column;
+    // justify-content: space-around;
+    // align-items: center;
+  }
+
+  .center-box {
+    height: 100% !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .center-box div {
+    font-weight: 700;
+    font-size: 40px;
+  }
+
+  .calculat {
+    font-size: 30px;
+  }
+}
+
+.col-style {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+</style>

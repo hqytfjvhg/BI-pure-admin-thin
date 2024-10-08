@@ -1,0 +1,9 @@
+import { http } from "@/utils/http";
+//第一个图表
+export const getOneData = data => {
+    return http.request("POST", "/saleData/getProductSaleDataFromStartToCurrent?productName="+data);
+};
+//第二个图表
+export const getTwoData = data => {
+    return http.request("POST", "/saleData/getTopNumberProductSaleMoneyByCurrentTime", { data });
+};

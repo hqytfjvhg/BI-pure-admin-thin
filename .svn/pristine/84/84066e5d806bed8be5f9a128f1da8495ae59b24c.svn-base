@@ -1,0 +1,444 @@
+<template>
+  <div>
+    <Table
+      v-model:formData="formData"
+      :page="page"
+      :showIndex="true"
+      :showPage="true"
+      :tableData="tableData"
+      @refresh="getDistributorList"
+    >
+      <template #formItem>
+        <el-form-item :label="t('permission.distributors.name')"
+          ><el-input v-model="formData.distributorName"
+        /></el-form-item>
+        <el-form-item :label="t('permission.distributors.lineType')">
+          <el-select
+            v-model="formData.area"
+            :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+            style="width: 220px"
+            filterable
+            remote
+            clearable=""
+          >
+            <el-option
+              v-for="item in lineTypeOption"
+              :key="item.name"
+              :label="item.name"
+              :value="item.name"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- <el-form-item>
+          <el-button type="success" @click="handleAdd">{{
+            t("status.add")
+          }}</el-button></el-form-item
+        > -->
+      </template>
+      <template #funButton>
+        <el-button type="warning" @click="handlePull">{{
+          t("status.pull")
+        }}</el-button>
+
+        <el-popover
+          effect="light"
+          placement="bottom"
+          trigger="click"
+          width="300"
+        >
+          <ul v-if="noBindData.length > 0">
+            <li v-for="(item, index) in noBindData" :key="item.id">
+              {{ index + 1 + "、" + item.name }}
+            </li>
+          </ul>
+          <span v-else>{{ t("permission.distributors.no") }}</span>
+          <template #reference>
+            <el-button @click="handleNoBind">{{
+              t("status.noBind")
+            }}</el-button>
+          </template>
+        </el-popover>
+
+        <el-button type="success" @click="handleBinding">{{
+          t("status.binding")
+        }}</el-button>
+      </template>
+
+      <template #columns>
+        <el-table-column
+          prop="name"
+          :label="t('permission.distributors.name')"
+        />
+        <!-- <el-table-column
+          prop="enName"
+          :label="t('permission.distributors.enName')"
+        /> -->
+        <el-table-column
+          prop="lineTypeName"
+          :label="t('permission.distributors.lineTypeName')"
+        />
+        <el-table-column
+          prop="remark"
+          :label="t('permission.distributors.remark')"
+        />
+        <el-table-column
+          prop="sort"
+          :label="t('permission.distributors.sort')"
+        />
+
+        <el-table-column :label="t('status.operate')">
+          <template #default="{ row }">
+            <el-text type="primary" @click="handleEdit(row)">{{
+              t("status.edit")
+            }}</el-text>
+            <!-- <el-text type="primary" @click="handleDel(row)">{{
+              t("status.del")
+            }}</el-text> -->
+          </template>
+        </el-table-column>
+      </template>
+    </Table>
+
+    <!-- <Dialog
+      :dialog="dialog"
+      @confirm="submitEdit"
+    >
+      <el-form
+        ref="ruleForm"
+        :model="editFormData"
+        :rules="rules"
+      >
+        <el-form-item
+          v-if="dialog.title == '修改信息'"
+          :label="t('permission.distributors.name')"
+          prop="name"
+        >
+          <el-input
+            v-model="editFormData.name"
+            disabled
+          />
+        </el-form-item>
+        <el-form-item
+          v-if="dialog.title == '新增经销商'"
+          :label="t('permission.distributors.name')"
+          prop="name"
+        >
+          <el-select
+            v-model="editFormData.name"
+            filterable
+          >
+            <el-option
+              v-for="item in nameOption"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item
+          :label="t('permission.distributors.lineType')"
+          prop="lineType"
+        >
+          <el-select
+            v-model="editFormData.lineType"
+            filterable
+          >
+            <el-option
+              v-for="item in lineTypeOption"
+              :key="item.resourceId"
+              :label="item.name"
+              :value="item.resourceId"
+            />
+          </el-select>
+        </el-form-item>
+       
+        <el-form-item
+          :label="t('permission.distributors.sort')"
+          prop="sort"
+        >
+          <el-input-number
+            v-model="editFormData.sort"
+            :min="1"
+          />
+        </el-form-item>
+        <el-form-item
+          :label="t('permission.distributors.remark')"
+          prop="remark"
+        >
+          <el-input v-model="editFormData.remark" />
+        </el-form-item>
+      </el-form>
+    </Dialog> -->
+
+    <!-- 修改信息 -->
+    <el-dialog
+      v-model="dialog.show"
+      :title="t(`permission.resource.edit`)"
+      center
+    >
+      <el-form
+        ref="ruleForm"
+        :model="editFormData"
+        :rules="rules"
+        :label-position="right"
+        label-width="auto"
+        style="max-width: 600px"
+      >
+        <el-form-item
+          v-if="dialog.title == '修改信息'"
+          :label="t('permission.distributors.name')"
+          prop="name"
+        >
+          <el-input v-model="editFormData.name" disabled />
+        </el-form-item>
+        <el-form-item
+          v-if="dialog.title == '新增经销商'"
+          :label="t('permission.distributors.name')"
+          prop="name"
+        >
+          <el-select v-model="editFormData.name" filterable>
+            <el-option
+              v-for="item in nameOption"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item
+          :label="t('permission.distributors.lineType')"
+          prop="lineType"
+        >
+          <el-select v-model="editFormData.lineType" filterable>
+            <el-option
+              v-for="item in lineTypeOption"
+              :key="item.resourceId"
+              :label="item.name"
+              :value="item.resourceId"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item :label="t('permission.distributors.sort')" prop="sort">
+          <el-input-number v-model="editFormData.sort" :min="1" />
+        </el-form-item>
+        <el-form-item
+          :label="t('permission.distributors.remark')"
+          prop="remark"
+        >
+          <el-input v-model="editFormData.remark" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialog.show = false">{{
+            t(`status.cancle`)
+          }}</el-button>
+          <el-button type="primary" @click="submitEdit">
+            {{ t(`status.confirm`) }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive, computed } from "vue";
+import Table from "@/components/table/index.vue";
+import { useI18n } from "vue-i18n";
+import Dialog from "@/components/dialog/index.vue";
+import {
+  getDistributorPage,
+  deleteDistributor,
+  updateDistributor,
+  selectDistributorNameFromStreamLine,
+  addDistributor,
+  pullAllDistributorFromStreamLineImportBI,
+  toAllDistributorBindLineType,
+  selectAllUnBindLineTypeDistributor,
+  bindDistributorToFourResource
+} from "@/api/permission/distributors";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { getResourceByResourceLevel } from "@/api/permission/resource";
+
+const { t } = useI18n();
+//表格和条件查询表单的字段定义
+const page = reactive({
+  page: 1,
+  length: 10,
+  total: 0
+});
+const tableData = ref([]);
+const formData = ref({ distributorName: "" });
+
+//获取经销商列表
+const getDistributorList = () => {
+  if (formData.value) {
+    formData.value.page = page.page;
+    formData.value.length = page.length;
+  }
+  getDistributorPage(formData.value).then(res => {
+    tableData.value = res.data.list;
+    page.total = res.data.totalCount;
+  });
+};
+//删除经销商
+const handleDel = row => {
+  ElMessageBox.confirm(t("permission.distributors.delReg"), t("status.warn"), {
+    confirmButtonText: t("status.confirm"),
+    cancelButtonText: t("status.cancle"),
+    type: "warning"
+  }).then(() => {
+    deleteDistributor(row.id).then(res => {
+      if (res.success) {
+        ElMessage.success(t("status.pureSuccess"));
+        getDistributorList();
+      }
+    });
+  });
+};
+//修改经销商
+const dialog = reactive({
+  show: false,
+  title: "修改信息",
+  width: "50%"
+});
+const editFormData = ref({});
+
+const rowData = ref({});
+const handleEdit = async row => {
+  console.log(row, "当前行");
+  await getFourLevelResource();
+  dialog.show = true;
+  dialog.title = "修改信息";
+  rowData.value = row;
+  editFormData.value = JSON.parse(JSON.stringify(row));
+};
+
+const lineTypeOption = ref([]);
+//查询所能修改的四级资源
+const getFourLevelResource = () => {
+  getResourceByResourceLevel(4).then(res => {
+    if (res.success) {
+      lineTypeOption.value = res.data;
+    }
+  });
+};
+
+const ruleForm = ref(null);
+//提交
+const submitEdit = () => {
+  // if (dialog.title == "修改信息") {
+  //   updateDistributor(editFormData.value).then(res => {
+  //     if (res.success) {
+  //       ElMessage.success(t("status.pureSuccess"));
+  //       dialog.show = false;
+  //       getDistributorList();
+  //     }
+  //   });
+  // } else if (dialog.title == "新增经销商") {
+  //   if (ruleForm.value) {
+  //     ruleForm.value.validate(valid => {
+  //       if (valid) {
+  //         addDistributor(editFormData.value).then(res => {
+  //           if (res.success) {
+  //             ElMessage.success(t("status.pureSuccess"));
+  //             dialog.show = false;
+  //             getDistributorList();
+  //           }
+  //         });
+  //       }
+  //     });
+  //   }
+  // }
+  updateDistributor(editFormData.value).then(res => {
+    if (res.success) {
+      ElMessage.success(t("status.pureSuccess"));
+      dialog.show = false;
+      getDistributorList();
+    }
+  });
+};
+
+const rules = computed(() => {
+  return {
+    name: [
+      {
+        required: true,
+        message: t("permission.distributors.nameReg"),
+        trigger: "blur"
+      }
+    ],
+    lineType: [
+      {
+        required: true,
+        message: t("permission.distributors.lineTypeReg"),
+        trigger: "change"
+      }
+    ],
+    sort: [
+      {
+        required: true,
+        message: t("permission.distributors.sortReg"),
+        trigger: "blur"
+      }
+    ]
+  };
+});
+
+const nameOption = ref([]);
+//新增经销商
+const handleAdd = () => {
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+
+  dialog.title = "新增经销商";
+  editFormData.value = {};
+  getFourLevelResource();
+  selectDistributorNameFromStreamLine().then(res => {
+    if (res.success) {
+      nameOption.value = res.data;
+    }
+  });
+  dialog.show = true;
+};
+
+//从sl拉取经销商到bi
+const handlePull = () => {
+  pullAllDistributorFromStreamLineImportBI();
+  getDistributorList();
+};
+//经销商绑定国家
+const handleBinding = async () => {
+  await toAllDistributorBindLineType();
+  bindDistributorToFourResource();
+};
+
+//未绑定经销商名单
+const noBindData = ref([]);
+const handleNoBind = () => {
+  selectAllUnBindLineTypeDistributor().then(res => {
+    if (res.data) {
+      let uniqueNames = new Map();
+      res.data.forEach(item => {
+        if (!uniqueNames.has(item.name)) {
+          uniqueNames.set(item.name, item);
+        }
+      });
+      noBindData.value = Array.from(uniqueNames.values());
+    }
+  });
+};
+
+onMounted(() => {
+  getDistributorList();
+  getFourLevelResource();
+});
+</script>
+
+<style lang="scss" scoped></style>

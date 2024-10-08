@@ -1,0 +1,11 @@
+import { http } from "@/utils/http";
+
+export function selectAllAreaSaleData(data) {
+  return http.request(
+    "get",
+    "/distributor/selectAllAreaSaleData?currencyId=" +
+      data.currencyId +
+      "&isMillion=" +
+      data.isMillion
+  );
+}

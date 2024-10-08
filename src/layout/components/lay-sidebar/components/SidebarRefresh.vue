@@ -1,0 +1,58 @@
+<script setup lang="js">
+import { getLastUserResource } from "@/api/permission/user";
+import { storageLocal } from "@pureadmin/utils";
+import { useUserStoreHook } from "@/store/modules/user";
+import Refresh from "@iconify-icons/ep/refresh-right";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+
+const refresh = () => {
+  getLastUserResource().then(res => {
+    if (res.data) {
+      //   const token = storageLocal().getItem("user-info")?.token ?? "";
+      //   const userId = storageLocal().getItem("user-info")?.userId ?? "";
+      //   const userName = storageLocal().getItem("user-info")?.userName ?? "";
+      //   const roleId = storageLocal().getItem("user-info")?.roleId ?? null;
+      //   const roleName = storageLocal().getItem("user-info")?.roleName ?? "";
+
+      // useUserStoreHook().SET_RESOURCEINFOLIST(res.data.resourceInfoVoList);
+      // useUserStoreHook().SET_DISTRIBUTORLIST(res.data.distributorList);
+      // useUserStoreHook().SET_ONELEVELPERMISSION(res.data.oneLevelPermission);
+      // useUserStoreHook().SET_CNYRATE(res.data.cnyRate);
+
+      //   storageLocal().setItem("user-info", {
+      //     token,
+      //     userId,
+      //     userName,
+      //     roleId,
+      //     roleName,
+      //     resourceInfoVoList,
+      //     distributorList
+      //   });
+      let userInfo = storageLocal().getItem("user-info");
+      userInfo.resourceInfoVoList = res.data.resourceInfoVoList;
+      userInfo.distributorList = res.data.distributorList;
+      userInfo.oneLevelPermission = res.data.oneLevelPermission;
+      userInfo.cnyRate = res.data.cnyRate; //更新汇率
+      userInfo.america = res.data.america;
+      userInfo.americaDistributor = res.data.americaDistributor;
+      //清空分析页面自定义的数据
+      userInfo.saleList = [];
+      userInfo.qtyList = [];
+      storageLocal().setItem("user-info", userInfo);
+      window.location.reload();
+    }
+  });
+};
+</script>
+
+<template>
+  <span
+    class="fullscreen-icon navbar-bg-hover"
+    @click="refresh"
+    :title="t('panel.refresh')"
+  >
+    <IconifyIconOffline :icon="Refresh" />
+  </span>
+</template>

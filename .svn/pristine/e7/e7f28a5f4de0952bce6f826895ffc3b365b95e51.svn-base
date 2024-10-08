@@ -1,0 +1,52 @@
+//销售看板
+export default {
+  path: "/salesBoard",
+  meta: {
+    title: "menus.salesBoard",
+    icon: "ep:lollipop",
+    rank: 10
+  },
+
+  children: [
+    // 图一
+    {
+      path: "/salesBoard/saleChartsOne",
+      name: "saleChartsOne",
+      component: () => import("@/views/biDataBoard/saleChartsOne.vue"),
+      meta: {
+        title: "menus.saleChartsOne"
+        // roles: ["admin", "common"]
+      }
+    },
+    // 图二
+    {
+      path: "/salesBoard/saleChartsTwo",
+      name: "saleChartsTwo",
+      component: () => import("@/views/biDataBoard/saleChartsTwo.vue"),
+      meta: {
+        title: "menus.saleChartsTwo"
+        // roles: ["admin", "common"]
+      }
+    },
+    //图三
+    {
+      path: "/salesBoard/saleChartsThree",
+      name: "saleChartsThree",
+      component: () => import("@/views/biDataBoard/saleChartsThree.vue"),
+      meta: {
+        title: "menus.saleChartsThree"
+        // roles: ["admin", "common"]
+      }
+    },
+    //图四
+    {
+      path: "/salesBoard/saleChartsFour",
+      name: "saleChartsFour",
+      component: () => import("@/views/biDataBoard/saleChartsFour.vue"),
+      meta: {
+        title: "menus.saleChartsFour"
+        // roles: ["admin", "common"]
+      }
+    }
+  ]
+};

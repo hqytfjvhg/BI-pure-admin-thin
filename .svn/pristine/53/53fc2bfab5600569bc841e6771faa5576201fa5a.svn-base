@@ -1,0 +1,337 @@
+<template>
+  <el-row :gutter="24" justify="space-around" type="flex">
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0"
+    >
+      <el-card class="bar-card" shadow="never">
+        <div class="flex justify-between">
+          <!-- <span class="font-medium text-md">{{
+              t("salesBoard.sales")
+            }}</span> -->
+          <el-form
+            :inline="true"
+            :model="formData"
+            ref="ruleForm"
+            :rules="rules"
+          >
+            <el-form-item :label="t('salesBoard.common.date')" prop="date">
+              <el-date-picker
+                v-model="formData.date"
+                format="YYYY/MM/DD"
+                value-format="YYYY-MM-DD"
+                type="daterange"
+                range-separator="To"
+                start-placeholder="Start date"
+                end-placeholder="End date"
+                :size="size"
+                @change="handleChangeDate"
+              />
+            </el-form-item>
+            <el-form-item
+              :label="t('salesBoard.common.sku')"
+              prop="productName"
+            >
+              <el-select
+                v-model="formData.productName"
+                style="width: 240px"
+                clearable
+                filterable
+                remote
+              >
+                <el-option
+                  v-for="item in productList"
+                  :key="item.name"
+                  :label="item.name"
+                  :value="item.name"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item
+              :label="t('salesBoard.common.customer')"
+              prop="distributorNameList"
+            >
+              <el-select
+                v-model="formData.distributorNameList"
+                style="width: 240px"
+                filterable
+                clearable
+                multiple
+                :multiple-limit="5"
+              >
+                <el-option
+                  v-for="item in customerOptions"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                />
+              </el-select> </el-form-item
+            ><el-form-item
+              ><el-button type="primary" @click="getDataPaint">{{
+                t("status.inquire")
+              }}</el-button></el-form-item
+            >
+          </el-form>
+        </div>
+        <div class="flex items-start justify-between mt-3">
+          <el-row style="width: 100%; height: 600px">
+            <el-col :span="12">
+              <div
+                id="sales-one"
+                ref="salesBar"
+                style="width: 100%; height: 600px"
+              />
+            </el-col>
+            <el-col :span="12">
+              <div
+                id="sales-two"
+                ref="salesBar"
+                style="width: 100%; height: 600px"
+              />
+            </el-col>
+          </el-row>
+        </div>
+      </el-card>
+    </re-col>
+  </el-row>
+</template>
+
+<script setup>
+import ReCol from "@/components/ReCol";
+import { ref, reactive, onMounted, nextTick, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
+import { getAllProductBaseInfo } from "@/api/permission/product";
+import * as echarts from "echarts";
+import { storageLocal } from "@pureadmin/utils";
+import { comparisonDistributorSaleProductData } from "@/api/biDataBoard/saleChartsSix";
+
+const { t } = useI18n();
+
+//获取经销商
+const customerOptions = ref(
+  storageLocal().getItem("user-info")?.distributorList
+);
+
+const transTime = date => {
+  let year = date.getFullYear();
+  let month = ("0" + (date.getMonth() + 1)).slice(-2); // 月份是从0开始的，所以需要加1；同时补零
+  let day = ("0" + date.getDate()).slice(-2); // 日期补零
+  return year + "-" + month + "-" + day;
+};
+
+// date:[transTime(new Date()),transTime(new Date())]
+const formData = ref({});
+
+//产品list
+let productList = ref([]);
+const getProductData = () => {
+  getAllProductBaseInfo().then(res => {
+    productList.value = res.data;
+    formData.value.productName = res.data[0]?.name || "";
+    formData.value.distributorNameList.push(customerOptions.value[0]);
+  });
+};
+const rules = ref({
+  date: [
+    {
+      required: true,
+      message: t("salesBoard.common.commonPlaceHolder"),
+      trigger: "change"
+    }
+  ],
+  distributorNameList: [
+    {
+      required: true,
+      message: t("salesBoard.common.commonPlaceHolder"),
+      trigger: "bulr"
+    }
+  ],
+  productName: [
+    {
+      required: true,
+      message: t("salesBoard.common.commonPlaceHolder"),
+      trigger: "bulr"
+    }
+  ]
+});
+
+//图表
+const paintingOne = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(op => {
+    yData.push(op.total);
+    xData.push(op.distributorName);
+  });
+
+  let myChart = echarts.init(document.getElementById("sales-one"));
+  myChart.clear();
+  document.getElementById("sales-one").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t("salesBoard.saleChartsFive.sale"),
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData
+    },
+    yAxis: {
+      type: "value",
+      name: "$",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 20
+      }
+    ]
+  });
+};
+const paintingTwo = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(op => {
+    yData.push(op.total);
+    xData.push(op.distributorName);
+  });
+
+  let myChart = echarts.init(document.getElementById("sales-two"));
+  myChart.clear();
+  document.getElementById("sales-two").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t("salesBoard.saleChartsFive.qty"),
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData
+    },
+    yAxis: {
+      type: "value"
+      //   name: "$",
+      //   nameTextStyle: {
+      //     fontWeight: "600"
+      //   }
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 20
+      }
+    ]
+  });
+};
+
+const ruleForm = ref(null);
+const getDataPaint = () => {
+  if (ruleForm.value) {
+    ruleForm.value.validate(valid => {
+      if (valid) {
+        formData.value.startDate = formData.value.date[0];
+        formData.value.endDate = formData.value.date[1];
+        comparisonDistributorSaleProductData(formData.value).then(res => {
+          if (res.data && res.success) {
+            nextTick(() => {
+              paintingOne(res.data.saleMoney);
+              paintingTwo(res.data.saleQTY);
+            });
+          }
+        });
+      }
+    });
+  }
+};
+
+onMounted(() => {
+  getProductData();
+  window.addEventListener("setItemEvent", e => {
+    getDataPaint();
+  });
+});
+
+onUnmounted(() => {
+  // 移除对 sessionStorage 的监听
+  window.removeEventListener("setItemEvent", () => {});
+});
+</script>
+
+<style lang="scss" scoped>
+:deep(.el-card) {
+  --el-card-border-color: none;
+
+  /* 解决概率进度条宽度 */
+  .el-progress--line {
+    width: 85%;
+  }
+
+  /* 解决概率进度条字体大小 */
+  .el-progress-bar__innerText {
+    font-size: 15px;
+  }
+
+  /* 隐藏 el-scrollbar 滚动条 */
+  .el-scrollbar__bar {
+    display: none;
+  }
+
+  /* el-timeline 每一项上下、左右边距 */
+  .el-timeline-item {
+    margin: 0 6px;
+  }
+}
+
+.main-content {
+  margin: 20px 20px 0 !important;
+  background: none !important;
+  padding: 0 !important;
+}
+</style>

@@ -1,0 +1,283 @@
+<template>
+  <div>
+    <el-form :inline="true">
+      <el-form-item>
+        <el-button type="success" @click="handleAdd">{{
+          t("status.add")
+        }}</el-button></el-form-item
+      >
+      <el-form-item>
+        <el-button type="primary" @click="getAllResource">{{
+          t("status.ref")
+        }}</el-button></el-form-item
+      ></el-form
+    >
+    <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
+      <el-tab-pane
+        v-for="(item, index) in allResource"
+        :key="item"
+        :label="t(level[index].label)"
+        :name="level[index].name"
+      >
+        <el-table
+          :data="item"
+          border
+          height="100%"
+          row-key="resourceId"
+          :tree-props="{ children: 'childrenList', hasChildren: 'hasChildren' }"
+        >
+          <el-table-column
+            :label="t('permission.resource.index')"
+            type="index"
+            width="80"
+          />
+          <el-table-column :label="t('permission.resource.name')" prop="name" />
+          <el-table-column
+            :label="t('permission.resource.remark')"
+            prop="remark"
+          />
+          <el-table-column :label="t('permission.resource.operate')">
+            <template #default="{ row }">
+              <el-button
+                v-if="row.level !== 4"
+                type="primary"
+                @click="binding(row)"
+              >
+                {{ t("permission.resource.Binding") }}</el-button
+              ></template
+            >
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+      <!-- <el-tab-pane label="Config" name="second">Config</el-tab-pane>
+      <el-tab-pane label="Role" name="third">Role</el-tab-pane>
+      <el-tab-pane label="Task" name="fourth">Task</el-tab-pane> -->
+    </el-tabs>
+    <!-- 新增某一层的资源的弹窗 -->
+    <Dialog :dialog="dialog" @confirm="submitResource">
+      <el-form ref="ruleForm" :model="addFormData" :rules="rules">
+        <el-form-item :label="t('permission.resource.level')" prop="level">
+          <el-radio-group v-model="addFormData.level" @change="changeLevel">
+            <el-radio-button
+              v-for="item in levelOption"
+              :key="item.id"
+              :label="item.id"
+              :value="item.id"
+              >{{ t(item.title) }}</el-radio-button
+            >
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item :label="t('permission.resource.name')" prop="name">
+          <el-input v-if="addFormData.level !== 4" v-model="addFormData.name" />
+          <!-- 第四层的名字从系统内选择 -->
+          <el-select v-else v-model="addFormData.name">
+            <el-option
+              v-for="item in fourLevelResource"
+              :key="item.name"
+              :label="item.name"
+              :value="item.name"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('permission.resource.remark')" prop="remark">
+          <el-input v-model="addFormData.remark" />
+        </el-form-item>
+      </el-form>
+    </Dialog>
+    <!-- 为某一层的父级分配子级资源的弹窗 -->
+    <Dialog :dialog="bindSon" @confirm="submitBindSon">
+      <el-form ref="bindForm" :model="bindFormData" :rules="bindRules">
+        <el-form-item :label="t('permission.resource.son')" prop="son">
+          <el-cascader
+            v-model="bindFormData.resourceId"
+            :options="sonOption"
+            :checkStrictly="true"
+            :props="{ multiple: true }"
+            @change="changeRid"
+          />
+        </el-form-item>
+      </el-form>
+    </Dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
+import Dialog from "@/components/dialog/index.vue";
+import {
+  addResource,
+  getTreeResourceInfo,
+  getFourLevelResourceList,
+  getResourceByResourceLevel,
+  bindSonResource
+} from "@/api/permission/resource";
+import { ElMessage } from "element-plus";
+
+const { t } = useI18n();
+
+const activeName = ref("first");
+const level = reactive([
+  { label: "permission.resource.levelOne", name: "first" },
+  { label: "permission.resource.levelTwo", name: "two" },
+  { label: "permission.resource.levelThree", name: "three" },
+  { label: "permission.resource.levelFour", name: "four" }
+]);
+
+//控制弹窗参数
+const dialog = reactive({
+  show: false,
+  title: "新增资源",
+  width: "50%"
+});
+const handleAdd = () => {
+  dialog.show = true;
+};
+const addFormData = reactive({
+  level: null,
+  name: "",
+  remark: ""
+});
+//弹窗表单参数
+const rules = {
+  level: [
+    {
+      required: true,
+      message: t("permission.resource.levelReg"),
+      trigger: "change"
+    }
+  ],
+  name: [
+    {
+      required: true,
+      message: t("permission.resource.nameReg"),
+      trigger: "blur"
+    }
+  ]
+  // remark: [
+  //   {
+  //     required: true,
+  //     message: t("permission.resource.remarkReg"),
+  //     trigger: "blur"
+  //   }
+  // ]
+};
+const levelOption = reactive([
+  { id: 1, title: "permission.resource.levelOne" },
+  { id: 2, title: "permission.resource.levelTwo" },
+  { id: 3, title: "permission.resource.levelThree" },
+  { id: 4, title: "permission.resource.levelFour" }
+]);
+
+const allResource = ref([]);
+const levelOne = ref([]);
+const levelTwo = ref([]);
+const levelThree = ref([]);
+const levelFour = ref([]);
+//查询所有的资源
+const getAllResource = () => {
+  getTreeResourceInfo().then(res => {
+    if (res.success) {
+      // allResource.value = res.data;
+      levelOne.value = res.data.filter(item => item.level === 1);
+      levelTwo.value = res.data.filter(item => item.level === 2);
+      levelThree.value = res.data.filter(item => item.level === 3);
+      levelFour.value = res.data.filter(item => item.level === 4);
+      allResource.value = [
+        levelOne.value,
+        levelTwo.value,
+        levelThree.value,
+        levelFour.value
+      ];
+    }
+  });
+};
+
+const ruleForm = ref(null);
+//新增层级资源
+const submitResource = () => {
+  console.log(addFormData);
+  if (ruleForm.value) {
+    ruleForm.value.validate(valid => {
+      if (valid) {
+        addResource(addFormData).then(res => {
+          if (res.success) {
+            ElMessage.success(t("status.pureSuccess"));
+            dialog.show = false;
+            getAllResource();
+          }
+        });
+      }
+    });
+  }
+};
+
+const fourLevelResource = ref([]);
+//查询4层级资源
+const changeLevel = val => {
+  if (val === 4) {
+    getFourLevelResourceList().then(res => {
+      if (res.success) {
+        fourLevelResource.value = res.data;
+      }
+    });
+  }
+};
+const bindSon = reactive({
+  show: false,
+  title: "分配子级资源",
+  width: "50%"
+});
+const bindFormData = reactive({
+  resourceId: null
+});
+
+const sonOption = ref([]);
+//查询某层拥有的子级
+const getResourceByLevel = row => {
+  getResourceByResourceLevel(row.level + 1).then(res => {
+    if (res.success) {
+      sonOption.value = transData(res.data);
+    }
+  });
+};
+//处理层级关系的函数
+const transData = data => {
+  return data.map(item => {
+    const transformedItem = {
+      value: item.resourceId,
+      label: item.name
+    };
+
+    // 检查是否存在子级并递归处理
+    if (item.childrenList && item.childrenList.length > 0) {
+      transformedItem.children = transData(item.childrenList);
+    }
+
+    return transformedItem;
+  });
+};
+const rowData = ref({});
+//为层级资源分配子级资源
+const binding = async row => {
+  await getResourceByLevel(row);
+  bindSon.show = true;
+  rowData.value = row;
+};
+const submitBindSon = () => {
+  bindSonResource({
+    resourceId: rowData.value.resourceId,
+    childResourceIdList: bindFormData.resourceId
+  }).then(res => {
+    if (res.success) {
+      bindSon.show = false;
+    }
+  });
+};
+
+onMounted(() => {
+  getAllResource();
+});
+</script>
+
+<style lang="scss" scoped></style>

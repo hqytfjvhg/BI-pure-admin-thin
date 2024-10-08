@@ -1,0 +1,129 @@
+<template>
+  <div class="system-table-box">
+    <el-form :inline="true" :model="formData" v-if="showRefresh">
+      <slot name="formItem" />
+      <el-form-item>
+        <el-button type="primary" @click="handleRefresh">{{
+          t("status.inquire")
+        }}</el-button>
+      </el-form-item>
+    </el-form>
+    <div style="margin-bottom: 10px">
+      <slot name="funButton" />
+    </div>
+    <el-table
+      v-bind="$attrs"
+      ref="table"
+      class="system-table"
+      border
+      :height="tableHeight"
+      :data="tableData"
+    >
+      <el-table-column
+        v-if="showSelection"
+        type="selection"
+        width="80"
+        fixed="left"
+      />
+      <el-table-column
+        :label="t('status.index')"
+        width="80"
+        type="index"
+        fixed="left"
+      >
+        <!-- <template #default="scope">
+          {{ (page.index - 1) * page.size + scope.$index + 1 }}
+        </template> -->
+      </el-table-column>
+      <slot name="columns" />
+    </el-table>
+    <el-pagination
+      v-if="showPage"
+      v-model:current-page="page.page"
+      class="system-page"
+      background
+      :layout="pageLayout"
+      :total="page.total"
+      :page-size="page.length"
+      :page-sizes="pageSizes"
+      @current-change="handleCurrentChange"
+      @size-change="handleSizeChange"
+    />
+  </div>
+</template>
+
+<script setup>
+import { reactive, computed } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+const props = defineProps({
+  tableData: { type: Array, default: () => [] }, // 数据源
+  formData: { type: Array, default: () => [] }, //表单数据
+  showRefresh: { type: Boolean, default: true }, //是否显示刷新按钮
+  // showAdd: { type: Boolean, default: true }, //是否显示新增按钮
+  select: { type: Array, default: () => [] }, // 已选择的数据，与selection结合使用
+  showIndex: { type: Boolean, default: false }, // 是否展示index选择，默认否
+  showSelection: { type: Boolean, default: false }, // 是否展示选择框，默认否
+  showPage: { type: Boolean, default: false }, // 是否展示页级组件，默认是
+  page: {
+    // 分页参数
+    type: Object,
+    default: () => {
+      return { page: 1, length: 20, total: 0 };
+    }
+  },
+  pageLayout: {
+    type: String,
+    default: "total, sizes, prev, pager, next, jumper"
+  }, // 分页需要显示的东西，默认全部
+  pageSizes: { type: Array, default: () => [10, 20, 30, 50, 100, 150, 200] }
+});
+
+// const formData = reactive({});
+const emit = defineEmits(["refresh", "add"]);
+const handleRefresh = () => {
+  emit("refresh", props.formData);
+};
+const handleCurrentChange = page => {
+  const data = props.page;
+  data.page = page;
+  emit("refresh", data);
+};
+
+const handleSizeChange = length => {
+  const data = props.page;
+  data.length = length;
+  emit("refresh", data);
+};
+const handleAdd = () => {
+  emit("add");
+};
+
+const tableHeight = computed(() => {
+  return `${window.innerHeight - 275}px`;
+});
+// console.log(tableHeight.value, 999);
+</script>
+
+<style lang="scss" scoped>
+.system-table-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100%;
+  .system-table {
+    flex: 1;
+    height: 100%;
+  }
+
+  .system-page {
+    width: 100%;
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+</style>

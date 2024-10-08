@@ -1,0 +1,9 @@
+import { http } from "@/utils/http";
+//应收账款数据
+export const getReceivablesData = data => {
+  return http.request("POST", "/boardData/getReceivableData", { data });
+};
+//销售数据
+export const getSalesData = data => {
+  return http.request("POST", "/boardData/getSaleData", { data });
+};

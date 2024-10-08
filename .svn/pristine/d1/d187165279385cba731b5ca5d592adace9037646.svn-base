@@ -1,0 +1,11 @@
+import { http } from "@/utils/http";
+
+//查询用户列表
+export const selectByPage = data => {
+  return http.request("post", "/user/selectByPage", { data });
+};
+
+//新增用户
+export const addUser = data => {
+  return http.request("post", "/user/addUser", { data });
+};

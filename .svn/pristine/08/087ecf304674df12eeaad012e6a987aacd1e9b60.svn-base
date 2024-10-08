@@ -1,0 +1,81 @@
+<template>
+  <div id="printContent">
+    <el-button
+      type="warning"
+      v-print="{ id: 'printContent' }"
+      class="btn-style"
+      >{{ t("analysis.exppdf") }}</el-button
+    >
+    <el-timeline style="max-width: 50%; margin-left: 5%; margin-top: 20px">
+      <el-timeline-item
+        placement="top"
+        v-for="it in productList"
+        :key="it.cnProductDateStr"
+        :timestamp="locale === 'zh' ? it.cnProductDateStr : it.productDateStr"
+      >
+        <el-card>
+          <ol>
+            <li v-for="data in it.productList" :key="data">
+              <h4 class="h4-style">{{ data }}</h4>
+            </li>
+          </ol>
+        </el-card>
+      </el-timeline-item>
+    </el-timeline>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive, computed, nextTick, onUnmounted } from "vue";
+import { getProductDateRecords } from "@/api/dataBoard/progress";
+import { useI18n } from "vue-i18n";
+
+const { t, locale } = useI18n();
+
+const productList = ref([]);
+onMounted(async () => {
+  const res = await getProductDateRecords();
+  let prodData = res.data.reduce((acc, curr) => {
+    if (!acc[curr.cnProductDateStr]) {
+      acc[curr.cnProductDateStr] = {
+        cnProductDateStr: curr.cnProductDateStr,
+        productDateStr: curr.productDateStr,
+        productList: []
+      };
+    }
+    acc[curr.cnProductDateStr].productList.push(curr.productName);
+    return acc;
+  }, {});
+  Object.entries(prodData)
+    .sort((a, b) => {
+      return new Date(b.cnProductDateStr) - new Date(a.cnProductDateStr);
+    })
+    .forEach(([key, value]) => {
+      productList.value.push(value);
+    });
+
+  // console.log(productList.value, "产品数据");
+});
+</script>
+
+<style lang="scss" scoped>
+.h4-style {
+  margin: 10px;
+}
+ol {
+  list-style: auto !important;
+  margin-left: 20px;
+}
+.main-content {
+  height: 100% !important;
+}
+
+@media print {
+  .btn-style {
+    display: none;
+  }
+  el-timeline {
+    width: 90% !important;
+  }
+}
+</style>

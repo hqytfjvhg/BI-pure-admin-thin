@@ -1,0 +1,300 @@
+<script setup lang="js">
+import Motion from "./utils/motion";
+import { useRouter } from "vue-router";
+import { message } from "@/utils/message";
+import { loginRules } from "./utils/rule";
+import { useNav } from "@/layout/hooks/useNav";
+import { useLayout } from "@/layout/hooks/useLayout";
+import { useUserStoreHook } from "@/store/modules/user";
+import { initRouter, getTopMenu } from "@/router/utils";
+import { bg, avatar, illustration } from "./utils/static";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { ref, reactive, toRaw, onMounted, onBeforeUnmount } from "vue";
+import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
+import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
+import { useI18n } from "vue-i18n";
+import { $t, transformI18n } from "@/plugins/i18n";
+import { storageLocal } from "@pureadmin/utils";
+import { usePermissionStoreHook } from "@/store/modules/permission";
+import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
+
+import Lock from "@iconify-icons/ri/lock-fill";
+import User from "@iconify-icons/ri/user-3-fill";
+import Check from "@iconify-icons/ep/check";
+import dayIcon from "@/assets/svg/day.svg?component";
+import darkIcon from "@/assets/svg/dark.svg?component";
+import globalization from "@/assets/svg/globalization.svg?component";
+
+import { route1 } from "@/router";
+
+defineOptions({
+  name: "Login"
+});
+const router = useRouter();
+
+const loading = ref(false);
+const ruleFormRef = ref();
+
+const { initStorage } = useLayout();
+initStorage();
+
+const { t } = useI18n();
+const { dataTheme, overallStyle, dataThemeChange } = useDataThemeChange();
+dataThemeChange(overallStyle.value);
+const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
+const { locale, translationCh, translationEn, translationHk } =
+  useTranslationLang();
+
+const ruleForm = reactive({
+  username: "",
+  password: ""
+});
+
+const changeLanguage = type => {
+  type == "zh"
+    ? translationCh()
+    : type == "hk"
+      ? translationHk()
+      : translationEn();
+  // sessionStorage.setItem("languageShow", type);
+};
+
+//更新路由
+function reset(routes, status) {
+  routes.forEach(item => {
+    if (item.meta && item.meta.showLink === -2) {
+      item.meta.showLink = status;
+    }
+    if (item.children && item.children.length > 0) {
+      reset(item.children, status);
+    }
+  });
+  return routes;
+}
+const onLogin = async formEl => {
+  if (!formEl) return;
+  await formEl.validate((valid, fields) => {
+    if (valid) {
+      loading.value = true;
+      useUserStoreHook()
+        .loginByUsername(ruleForm)
+        .then(res => {
+          if (res.success) {
+            const status =
+              storageLocal().getItem("user-info")?.oneLevelPermission;
+            // usePermissionStoreHook().resetConstant(
+            //   reset(route1, res.data.oneLevelPermission)
+            // );
+            // usePermissionStoreHook().handleWholeMenus([]);
+            // 登录后手动添加首页标签信息
+            useMultiTagsStoreHook().handleTags("push", {
+              path: "/overview",
+              meta: {
+                showLink: true,
+                title: "menus.pureHome"
+              },
+              name: "Overview",
+              fullPath: "/overview"
+            });
+            location.reload();
+            setTimeout(() => {
+              router.push(getTopMenu(false).path);
+            }, 500);
+            // .then(() => {
+            //   message(t("login.pureLoginSuccess"), { type: "success" });
+            // });
+            // 获取后端路由
+            // return initRouter().then(() => {
+            //   router.push(getTopMenu(true).path).then(() => {
+            //     message(t("login.pureLoginSuccess"), { type: "success" });
+            //   });
+            // });
+          } else {
+            // message(res.message, { type: "error" });
+            loading.value = false;
+          }
+        })
+        .catch(() => (loading.value = false));
+    }
+  });
+};
+
+/** 使用公共函数，避免`removeEventListener`失效 */
+function onkeypress({ code }) {
+  if (code === "Enter") {
+    onLogin(ruleFormRef.value);
+  }
+}
+
+onMounted(() => {
+  window.document.addEventListener("keypress", onkeypress);
+});
+
+onBeforeUnmount(() => {
+  window.document.removeEventListener("keypress", onkeypress);
+});
+</script>
+
+<template>
+  <div class="select-none">
+    <img :src="bg" class="wave" />
+    <div class="absolute flex-c right-5 top-3">
+      <!-- 主题 -->
+      <el-switch
+        v-model="dataTheme"
+        inline-prompt
+        :active-icon="dayIcon"
+        :inactive-icon="darkIcon"
+        @change="dataThemeChange"
+      />
+      <!-- 国际化 -->
+      <el-dropdown trigger="click">
+        <globalization
+          class="hover:text-primary hover:!bg-[transparent] w-[20px] h-[20px] ml-1.5 cursor-pointer outline-none duration-300"
+        />
+        <template #dropdown>
+          <el-dropdown-menu class="translation">
+            <el-dropdown-item
+              :style="getDropdownItemStyle(locale, 'zh')"
+              :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]"
+              @click="changeLanguage('zh')"
+            >
+              <IconifyIconOffline
+                v-show="locale === 'zh'"
+                class="check-zh"
+                :icon="Check"
+              />
+              简体中文
+            </el-dropdown-item>
+            <!-- 繁体 -->
+            <el-dropdown-item
+              :style="getDropdownItemStyle(locale, 'hk')"
+              :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]"
+              @click="changeLanguage('hk')"
+            >
+              <span v-show="locale === 'hk'" class="check-en">
+                <IconifyIconOffline :icon="Check" />
+              </span>
+              繁体中文
+            </el-dropdown-item>
+            <el-dropdown-item
+              :style="getDropdownItemStyle(locale, 'en')"
+              :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]"
+              @click="changeLanguage('en')"
+            >
+              <span v-show="locale === 'en'" class="check-en">
+                <IconifyIconOffline :icon="Check" />
+              </span>
+              English
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
+    <div class="login-container">
+      <div class="img">
+        <component :is="toRaw(illustration)" />
+      </div>
+      <div class="login-box">
+        <div class="login-form">
+          <!-- <avatar class="avatar" />
+          <Motion>
+            <h2 class="outline-none">{{ title }}</h2>
+          </Motion> -->
+
+          <el-form
+            ref="ruleFormRef"
+            :model="ruleForm"
+            :rules="loginRules"
+            size="large"
+            style="margin-top: -40%"
+          >
+            <Motion :delay="100">
+              <el-form-item
+                :rules="[
+                  {
+                    required: true,
+                    message: transformI18n($t('login.pureUsernameReg')),
+                    trigger: 'blur'
+                  }
+                ]"
+                prop="username"
+              >
+                <el-input
+                  v-model="ruleForm.username"
+                  clearable
+                  :placeholder="t('login.pureUsername')"
+                  :prefix-icon="useRenderIcon(User)"
+                />
+              </el-form-item>
+            </Motion>
+
+            <Motion :delay="150">
+              <el-form-item prop="password">
+                <el-input
+                  v-model="ruleForm.password"
+                  clearable
+                  show-password
+                  :placeholder="t('login.purePassword')"
+                  :prefix-icon="useRenderIcon(Lock)"
+                />
+              </el-form-item>
+            </Motion>
+
+            <Motion :delay="250">
+              <el-button
+                class="w-full mt-4"
+                size="default"
+                type="primary"
+                :loading="loading"
+                @click="onLogin(ruleFormRef)"
+              >
+                {{ t("login.pureLogin") }}
+              </el-button>
+            </Motion>
+          </el-form>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer-style" v-if="locale === 'zh'">
+      <a href="https://beian.miit.gov.cn" target="_blank"
+        >ICP：粤ICP备 2021172083号 - 1</a
+      >
+    </div>
+  </div>
+</template>
+
+<style scoped>
+@import url("@/style/login.css");
+</style>
+
+<style lang="scss" scoped>
+:deep(.el-input-group__append, .el-input-group__prepend) {
+  padding: 0;
+}
+
+.translation {
+  ::v-deep(.el-dropdown-menu__item) {
+    padding: 5px 40px;
+  }
+
+  .check-zh {
+    position: absolute;
+    left: 20px;
+  }
+
+  .check-en {
+    position: absolute;
+    left: 20px;
+  }
+}
+.footer-style {
+  position: absolute;
+  bottom: 2%;
+  width: 100%;
+  // left: 45%;
+  text-align: center;
+}
+</style>

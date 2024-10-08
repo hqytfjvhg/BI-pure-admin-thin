@@ -1,0 +1,347 @@
+<template>
+  <div>
+    <Table
+      v-model:formData="formData"
+      :page="page"
+      :showIndex="true"
+      :showPage="true"
+      :tableData="tableData"
+      @refresh="getProductList"
+    >
+      <template #formItem>
+        <el-form-item :label="t('permission.product.name')"
+          ><el-input v-model="formData.productName"
+        /></el-form-item>
+        <el-form-item :label="t('permission.product.series')">
+          <el-select
+            v-model="formData.type"
+            style="width: 150px"
+            clearable
+            filterable
+            @change="handleChangeType"
+          >
+            <el-option
+              v-for="item in typeOptions"
+              :key="item.name"
+              :label="item.label"
+              :value="item.name"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-select
+            v-model="formData.typeId"
+            style="width: 150px"
+            clearable
+            filterable
+          >
+            <el-option
+              v-for="item in attributesOptions"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- <el-form-item>
+          <el-button type="success" @click="handleAdd">{{
+            t("status.add")
+          }}</el-button></el-form-item
+        > -->
+      </template>
+      <template #funButton>
+        <el-button type="warning" @click="handlePull">{{
+          t("status.pull")
+        }}</el-button>
+      </template>
+      <template #columns>
+        <el-table-column prop="name" :label="t('permission.product.name')" />
+        <el-table-column
+          prop="seriesName"
+          :label="t('permission.product.series')"
+        />
+        <el-table-column
+          prop="functionName"
+          :label="t('permission.product.function')"
+        />
+        <el-table-column
+          prop="remark"
+          :label="t('permission.product.remark')"
+        />
+        <!-- <el-table-column
+          prop="sort"
+          :label="t('permission.product.sort')"
+        /> -->
+
+        <el-table-column :label="t('status.operate')">
+          <template #default="{ row }">
+            <el-text type="primary" @click="handleEdit(row)">{{
+              t("status.edit")
+            }}</el-text>
+            <!-- <el-text type="primary" @click="handleDel(row)">{{
+              t("status.del")
+            }}</el-text> -->
+          </template>
+        </el-table-column>
+      </template>
+    </Table>
+
+    <Dialog :dialog="dialog" @confirm="submitEdit">
+      <el-form ref="ruleForm" :model="editFormData" :rules="rules">
+        <el-form-item :label="t('permission.product.name')" prop="name">
+          <el-select
+            v-model="editFormData.name"
+            :disabled="
+              dialog.title === `${t('permission.product.addTitle')}`
+                ? false
+                : true
+            "
+          >
+            <el-option
+              v-for="item in nameOption"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('permission.product.series')" prop="series">
+          <el-select v-model="editFormData.series">
+            <el-option
+              v-for="item in seriesOption"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('permission.product.function')" prop="function">
+          <el-select v-model="editFormData.function">
+            <el-option
+              v-for="item in functionOption"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('permission.product.remark')" prop="remark">
+          <el-input v-model="editFormData.remark" />
+        </el-form-item>
+      </el-form>
+    </Dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from "vue";
+import Table from "@/components/table/index.vue";
+import {
+  getProductByPage,
+  getAllSeries,
+  getAllFunction,
+  addProduct,
+  updateProduct,
+  getAllProductFromStreamLine,
+  deleteProduct,
+  pullAllProductFromStreamLineImportBI
+} from "@/api/permission/product";
+import { useI18n } from "vue-i18n";
+import Dialog from "@/components/dialog/index.vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+
+const { t } = useI18n();
+const formData = ref({ productName: "", type: "", typeId: "" });
+const typeOptions = ref([
+  { label: t("salesBoard.saleChartsTwo.series"), name: "series" },
+  { label: t("salesBoard.saleChartsTwo.function"), name: "function" }
+]);
+const attributesOptions = ref([]);
+
+const page = reactive({
+  page: 1,
+  length: 10,
+  total: 0
+});
+
+//获取表格数据
+const tableData = ref([]);
+const getProductList = () => {
+  if (!formData.value.typeId) {
+    delete formData.value.function;
+    delete formData.value.series;
+  }
+  if (formData.value.type == "series") {
+    delete formData.value.function;
+    formData.value.series = formData.value.typeId;
+  } else if (formData.value.type == "function") {
+    delete formData.value.series;
+    formData.value.function = formData.value.typeId;
+  }
+  if (formData.value) {
+    formData.value.page = page.page;
+    formData.value.length = page.length;
+  }
+  getProductByPage(formData.value).then(res => {
+    if (res.success) {
+      tableData.value = res.data.list;
+      page.total = res.data.totalCount;
+    }
+  });
+};
+
+//新增产品
+const dialog = reactive({
+  show: false,
+  title: t("permission.product.addTitle"),
+  width: "50%"
+});
+const editFormData = ref({});
+const rules = {
+  name: [
+    {
+      required: true,
+      message: t("permission.product.nameReg"),
+      trigger: "change"
+    }
+  ],
+  series: [
+    {
+      required: true,
+      message: t("permission.product.seriesReg"),
+      trigger: "change"
+    }
+  ],
+  function: [
+    {
+      required: true,
+      message: t("permission.product.functionReg"),
+      trigger: "change"
+    }
+  ]
+};
+
+const handleAdd = () => {
+  // getProductName();
+  // getProductSeries();
+  // getProductFunction();
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+  dialog.show = true;
+  dialog.title = t("permission.product.addTitle");
+  editFormData.value = {};
+};
+
+//查询产品名称
+const nameOption = ref([]);
+const getProductName = () => {
+  getAllProductFromStreamLine().then(res => {
+    if (res.success) {
+      nameOption.value = res.data;
+    }
+  });
+};
+
+//查询产品系列
+const seriesOption = ref([]);
+const getProductSeries = () => {
+  getAllSeries().then(res => {
+    if (res.success) {
+      seriesOption.value = res.data;
+    }
+  });
+};
+//查询产品功能
+const functionOption = ref([]);
+const getProductFunction = () => {
+  getAllFunction().then(res => {
+    if (res.success) {
+      functionOption.value = res.data;
+    }
+  });
+};
+
+const handleChangeType = async val => {
+  if (val === "series") {
+    attributesOptions.value = seriesOption.value;
+  } else if (val === "function") {
+    attributesOptions.value = functionOption.value;
+  }
+};
+
+//新增或修改
+const ruleForm = ref(null);
+const submitEdit = () => {
+  // editFormData.value.series = editFormData.value.serialName;
+  // editFormData.value.function = editFormData.value.functionName;
+  //新增
+  if (dialog.title == t("permission.product.addTitle")) {
+    if (ruleForm.value) {
+      ruleForm.value.validate(valid => {
+        if (valid) {
+          addProduct(editFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+              getProductList();
+            }
+          });
+        }
+      });
+    }
+  } else if (dialog.title == t("permission.product.editInfo")) {
+    updateProduct(editFormData.value).then(res => {
+      if (res.success) {
+        ElMessage.success(t("status.pureSuccess"));
+        dialog.show = false;
+        getProductList();
+      }
+    });
+  }
+};
+
+//修改
+const rowData = ref([]);
+const handleEdit = row => {
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+  dialog.show = true;
+  dialog.title = t("permission.product.editInfo");
+  rowData.value = row;
+  editFormData.value = row;
+};
+
+//删除产品
+const handleDel = row => {
+  ElMessageBox.confirm(t("status.delReg"), t("status.warn"), {
+    confirmButtonText: t("status.confirm"),
+    cancelButtonText: t("status.cancle"),
+    type: "warning"
+  }).then(() => {
+    deleteProduct(row.id).then(res => {
+      if (res.success) {
+        ElMessage.success(t("status.pureSuccess"));
+        getProductList();
+      }
+    });
+  });
+};
+
+//拉取
+const handlePull = async () => {
+  await pullAllProductFromStreamLineImportBI();
+  getProductList();
+};
+
+onMounted(() => {
+  getProductList();
+  getProductName();
+  getProductSeries();
+  getProductFunction();
+});
+</script>
+
+<style lang="scss" scoped></style>

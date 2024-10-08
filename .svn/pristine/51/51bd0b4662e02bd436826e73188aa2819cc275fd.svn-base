@@ -1,0 +1,504 @@
+<template>
+  <div>
+    <el-form :inline="true">
+      <el-form-item>
+        <el-button type="warning" @click="handlePull()">{{
+          t("status.pull")
+        }}</el-button></el-form-item
+      >
+      <el-form-item>
+        <el-button type="success" @click="handleAdd('add')">{{
+          t("status.add")
+        }}</el-button></el-form-item
+      >
+      <el-form-item>
+        <el-button type="primary" @click="getAllResource">{{
+          t("status.ref")
+        }}</el-button></el-form-item
+      >
+    </el-form>
+    <el-tabs v-model="activeName" class="demo-tabs">
+      <el-tab-pane
+        v-for="(item, index) in allResource"
+        :key="item"
+        :label="t(level[index].label)"
+        :name="level[index].name"
+      >
+        <el-table
+          :data="item"
+          border
+          :height="tableHeight"
+          row-key="resourceId"
+          :tree-props="{ children: 'childrenList', hasChildren: 'hasChildren' }"
+        >
+          <!-- <el-table-column
+            :label="t('permission.resource.index')"
+            type="index"
+            width="80"
+          /> -->
+          <el-table-column :label="t('permission.resource.name')" prop="name" />
+          <el-table-column
+            :label="t('permission.resource.enName')"
+            prop="enName"
+          />
+          <el-table-column
+            v-if="index === 3"
+            :label="t('permission.resource.people')"
+            prop="population"
+          />
+          <el-table-column
+            v-if="index === 3"
+            :label="t('permission.resource.perCapita')"
+            prop="perCapitaIncome"
+          />
+          <el-table-column
+            :label="t('permission.resource.remark')"
+            prop="remark"
+          />
+          <el-table-column :label="t('permission.resource.operate')">
+            <template #default="{ row }">
+              <el-text
+                v-if="row.level !== 5 && row.level !== 4"
+                type="primary"
+                @click="binding(row, 'binding')"
+              >
+                {{ t("permission.resource.Binding") }}</el-text
+              >
+              <el-text
+                type="primary"
+                @click="handleEdit(row, 'edit')"
+                v-if="row.level !== 5"
+                >{{ t("status.edit") }}</el-text
+              >
+              <el-text
+                type="primary"
+                @click="handleDel(row, 'del')"
+                v-if="row.level !== 5"
+                >{{ t("status.del") }}</el-text
+              >
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+      <!-- <el-tab-pane label="Config" name="second">Config</el-tab-pane>
+      <el-tab-pane label="Role" name="third">Role</el-tab-pane>
+      <el-tab-pane label="Task" name="fourth">Task</el-tab-pane> -->
+    </el-tabs>
+    <!-- 新增某一层的资源的弹窗 -->
+    <Dialog :dialog="dialog" @confirm="submitResource">
+      <el-form
+        ref="ruleForm"
+        :model="addFormData"
+        :rules="rules"
+        :label-position="right"
+        label-width="auto"
+        style="max-width: 600px"
+      >
+        <el-form-item
+          v-if="type == 'add'"
+          :label="t('permission.resource.level')"
+          prop="level"
+        >
+          <el-radio-group v-model="addFormData.level" @change="changeLevel">
+            <el-radio-button
+              v-for="item in levelOption"
+              :key="item.id"
+              :label="item.id"
+              :value="item.id"
+              >{{ t(item.title) }}</el-radio-button
+            >
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item :label="t('permission.resource.name')" prop="name">
+          <el-input
+            v-if="addFormData.level !== 4 || type == 'edit'"
+            v-model="addFormData.name"
+            :disabled="addFormData.level == 4 && type == 'edit' ? true : false"
+          />
+          <!-- 第四层的名字从系统内选择 -->
+          <el-select
+            filterable
+            v-if="addFormData.level == 4 && type == 'add'"
+            v-model="addFormData.name"
+          >
+            <el-option
+              v-for="item in fourLevelResource"
+              :key="item.name"
+              :label="item.name"
+              :value="item.name"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item
+          :label="t('permission.resource.enName')"
+          prop="enName"
+          v-if="addFormData.level !== 4 || type == 'edit'"
+        >
+          <el-input
+            v-model="addFormData.enName"
+            :disabled="addFormData.level == 4 && type == 'edit' ? true : false"
+          />
+        </el-form-item>
+        <el-form-item
+          :label="t('permission.resource.people')"
+          prop="population"
+          v-if="addFormData.level === 4 && type == 'edit'"
+        >
+          <el-input v-model="addFormData.population" />
+        </el-form-item>
+        <el-form-item
+          :label="t('permission.resource.perCapita')"
+          prop="perCapitaIncome"
+          v-if="addFormData.level === 4 && type == 'edit'"
+        >
+          <el-input v-model="addFormData.perCapitaIncome" />
+        </el-form-item>
+        <el-form-item :label="t('permission.resource.remark')" prop="remark">
+          <el-input v-model="addFormData.remark" />
+        </el-form-item>
+      </el-form>
+    </Dialog>
+    <!-- 为某一层的父级分配子级资源的弹窗 -->
+    <!-- <Dialog :dialog="bindSon" @confirm="submitBindSon" calss="body-height">
+      <el-form ref="bindForm" :model="bindFormData" :rules="bindRules">
+        <el-form-item :label="t('permission.resource.son')" prop="son">
+          <el-cascader
+            filterable
+            style="width: 300px"
+            v-model="bindFormData.resourceId"
+            :options="sonOption"
+            :checkStrictly="true"
+            :props="{ checkStrictly: true, emitPath: false, multiple: true }"
+            @change="changeRid"
+          />
+        </el-form-item>
+      </el-form>
+    </Dialog> -->
+    <el-dialog
+      v-model="bindSon.show"
+      :title="t(`permission.resource.addTitle`)"
+      center
+    >
+      <el-form ref="bindForm" :model="bindFormData" :rules="bindRules">
+        <el-form-item :label="t('permission.resource.son')" prop="son">
+          <el-cascader
+            filterable
+            style="width: 100%"
+            v-model="bindFormData.resourceId"
+            :options="sonOption"
+            :checkStrictly="true"
+            :props="{ checkStrictly: true, emitPath: false, multiple: true }"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="bindSon.show = false">{{
+            t(`status.cancle`)
+          }}</el-button>
+          <el-button type="primary" @click="submitBindSon">
+            {{ t(`status.confirm`) }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted, computed } from "vue";
+import { useI18n } from "vue-i18n";
+import Dialog from "@/components/dialog/index.vue";
+import {
+  addResource,
+  getTreeResourceInfo,
+  getFourLevelResourceList,
+  getResourceByResourceLevel,
+  bindSonResource,
+  updateResourceInfo,
+  importAllResourceFromFourResource,
+  deleteResourceByResourceId
+} from "@/api/permission/resource";
+import { ElMessage, ElMessageBox } from "element-plus";
+
+const { t, locale } = useI18n();
+
+const activeName = ref("first");
+const level = reactive([
+  { label: "permission.resource.levelOne", name: "first" },
+  { label: "permission.resource.levelTwo", name: "two" },
+  { label: "permission.resource.levelThree", name: "three" },
+  { label: "permission.resource.levelFour", name: "four" }
+]);
+
+//控制弹窗参数
+const dialog = reactive({
+  show: false,
+  title: t("permission.resource.addTitle"),
+  width: "50%"
+});
+const handleAdd = str => {
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+  dialog.show = true;
+  type.value = str;
+  dialog.title = t("permission.resource.addTitle");
+  addFormData.value = {};
+};
+const addFormData = ref({
+  level: null,
+  name: "",
+  remark: ""
+});
+//弹窗表单参数
+const rules = computed(() => {
+  return {
+    level: [
+      {
+        required: true,
+        message: t("permission.resource.levelReg"),
+        trigger: "change"
+      }
+    ],
+    name: [
+      {
+        required: true,
+        message: t("permission.resource.nameReg"),
+        trigger: "blur"
+      }
+    ],
+    enName: [
+      {
+        required: true,
+        message: t("permission.resource.enNameReg"),
+        trigger: "blur"
+      }
+    ]
+    // remark: [
+    //   {
+    //     required: true,
+    //     message: t("permission.resource.remarkReg"),
+    //     trigger: "blur"
+    //   }
+    // ]
+  };
+});
+const levelOption = reactive([
+  { id: 1, title: "permission.resource.levelOne" },
+  { id: 2, title: "permission.resource.levelTwo" },
+  { id: 3, title: "permission.resource.levelThree" }
+  // { id: 4, title: "permission.resource.levelFour" }
+]);
+
+const allResource = ref([]);
+const levelOne = ref([]);
+const levelTwo = ref([]);
+const levelThree = ref([]);
+const levelFour = ref([]);
+//查询所有的资源
+const getAllResource = async () => {
+  await getResourceByResourceLevel(4).then(res => {
+    if (res.success) {
+      levelFour.value = res.data;
+    }
+  });
+  getTreeResourceInfo().then(res => {
+    if (res.success) {
+      // allResource.value = res.data;
+      levelOne.value = res.data.tree.filter(item => item.level === 1);
+      levelTwo.value = res.data.two;
+      levelThree.value = res.data.three;
+      // levelFour.value = res.data.tree.filter(item => item.level === 4);
+      allResource.value = [
+        levelOne.value,
+        levelTwo.value,
+        levelThree.value,
+        levelFour.value
+      ];
+    }
+  });
+};
+
+const ruleForm = ref(null);
+//新增层级资源
+const submitResource = () => {
+  if (ruleForm.value) {
+    ruleForm.value.validate(valid => {
+      if (valid) {
+        if (type.value == "add") {
+          addResource(addFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+              getAllResource();
+            }
+          });
+        } else if (type.value == "edit") {
+          updateResourceInfo(addFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+              getAllResource();
+            }
+          });
+        }
+      }
+    });
+  }
+};
+
+const fourLevelResource = ref([]);
+//查询4层级资源
+const changeLevel = val => {
+  if (val === 4) {
+    // fourLevelResource.value = allResource.value[3];
+    getFourLevelResourceList().then(res => {
+      if (res.success) {
+        fourLevelResource.value = res.data;
+      }
+    });
+  }
+};
+const bindSon = reactive({
+  show: false,
+  title: t(`permission.resource.allotChild`),
+  width: "50%"
+});
+const bindFormData = reactive({
+  resourceId: null
+});
+
+const sonOption = ref([]);
+//查询某层拥有的子级
+const getResourceByLevel = row => {
+  sonOption.value = transData(allResource.value[row.level]);
+  sonOption.value.forEach(item => {
+    if (bindFormData.resourceId.includes(item.resourceId)) {
+      item.disabled = false;
+    }
+    if (item.parentId === 0 && item.childrenList?.length > 0) {
+      item.childrenList.forEach(val => {
+        val.disabled = false;
+      });
+    }
+  });
+  // getResourceByResourceLevel(row.level + 1).then(res => {
+  //   if (res.success) {
+  //     sonOption.value = transData(res.data);
+  //   }
+  // });
+};
+//处理层级关系的函数
+const transData = data => {
+  return data.map(item => {
+    const transformedItem = {
+      value: item.resourceId,
+      label: locale.value === "zh" ? item.name : item.enName,
+      parentId: item.parentId,
+      resourceId: item.resourceId
+    };
+
+    // 检查是否存在子级并递归处理
+    if (item.childrenList && item.childrenList.length > 0) {
+      transformedItem.childrenList = transData(item.childrenList);
+    }
+    if (item.parentId !== 0) {
+      transformedItem.disabled = true;
+    }
+    return transformedItem;
+  });
+};
+const rowData = ref({});
+const type = ref(null);
+
+//为层级资源分配子级资源
+const binding = async (row, str) => {
+  bindFormData.resourceId = row.childrenList.map(item => item.resourceId);
+  await getResourceByLevel(row);
+  bindSon.show = true;
+  bindFormData.title = t(`permission.resource.allotChild`);
+
+  rowData.value = row;
+  type.value = str;
+};
+
+//修改
+const handleEdit = (row, str) => {
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+  dialog.show = true;
+  type.value = str;
+  dialog.title = t("permission.resource.edit");
+  addFormData.value = row;
+};
+
+//提交
+const submitBindSon = () => {
+  if (type.value == "binding") {
+    bindSonResource({
+      resourceId: rowData.value.resourceId,
+      childResourceIdList: bindFormData.resourceId
+    }).then(res => {
+      if (res.success) {
+        getAllResource();
+        bindSon.show = false;
+      }
+    });
+  }
+};
+//拉取
+const handlePull = () => {
+  importAllResourceFromFourResource();
+  getAllResource();
+};
+
+//删除递归获取
+let idList = [];
+const getId = row => {
+  row.forEach(item => {
+    idList.push(item.resourceId);
+    if (item.childrenList.length > 0) {
+      getId(item.childrenList);
+    }
+  });
+
+  return idList;
+};
+
+//删除
+const handleDel = (row, str) => {
+  type.value = str;
+  ElMessageBox.confirm(t("status.delReg"), t("status.warn"), {
+    confirmButtonText: t("status.confirm"),
+    cancelButtonText: t("status.cancle"),
+    type: "warning"
+  })
+    .then(() => {
+      deleteResourceByResourceId(getId([row])).then(res => {
+        if (res.success && res.data) {
+          ElMessage.success(t("status.pureSuccess"));
+          getAllResource();
+        }
+      });
+    })
+    .catch(() => {
+      idList = [];
+    });
+};
+
+const tableHeight = computed(() => {
+  return `${window.innerHeight - 250}px`;
+});
+
+onMounted(() => {
+  getAllResource();
+});
+</script>
+
+<style lang="scss" scoped>
+.body-height .el-dialog--center .el-dialog__body {
+  height: 200px;
+}
+</style>

@@ -1,0 +1,27 @@
+import { http } from "@/utils/http";
+
+//获取bi经销商列表
+export const selectDistributor = () => {
+  return http.request("get", "/distributor/selectDistributor");
+};
+
+//删除经销商
+export const deleteDistributor = data => {
+  return http.request("delete", "/distributor/deleteDistributor?id=" + data);
+};
+
+//修改经销商
+export const updateDistributor = data => {
+  return http.request("post", "/distributor/updateDistributor", { data });
+};
+//新增经销商
+export const addDistributor = data => {
+  return http.request("post", "/distributor/addDistributor", { data });
+};
+//查询streamline已存在的经销商
+export const selectDistributorNameFromStreamLine = () => {
+  return http.request(
+    "get",
+    "/distributor/selectDistributorNameFromStreamLine"
+  );
+};

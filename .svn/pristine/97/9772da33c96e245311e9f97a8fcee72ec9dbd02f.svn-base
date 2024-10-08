@@ -1,0 +1,356 @@
+<script setup lang="js">
+import { onMounted, ref, nextTick } from "vue";
+import * as echarts from "echarts";
+import { useI18n } from "vue-i18n";
+import {
+  getTotalSaleMoneyTop10Product,
+  getLast12MonthTotalSaleMoneyTop10Product,
+  getLastThreeMonthSaleMoney
+} from "@/api/home/index";
+
+defineOptions({
+  name: "Welcome"
+});
+const { t } = useI18n();
+
+const barTwoData = ref({});
+
+const pieTitle = ref([t("home.lastFiveYear"), t("home.lastMonth")]);
+const barTitle = ref([t("home.topDistributor"), t("home.topProduct")]);
+
+const pieSetOption = ref({
+  title: {
+    text: "",
+    textStyle: {
+      fontSize: 16,
+      fontWeight: "normal"
+    },
+    top: "bottom",
+    left: "center"
+  },
+  tooltip: {
+    trigger: "item"
+  },
+  grid: {
+    left: "3%",
+    // right: "4%",
+    bottom: "5%",
+    top: "3%",
+    containLabel: true
+  },
+  // legend: {
+  //   orient: 'vertical',
+  //   left: 'left'
+  // },
+  series: [
+    {
+      name: "Access From",
+      type: "pie",
+      radius: "80%",
+      label: {
+        position: "inside",
+        color: "#fff"
+      },
+      data: [
+        { value: 1048, name: "2024-05" },
+        { value: 735, name: "2024-04" },
+        { value: 580, name: "2024-03" },
+        { value: 484, name: "2024-02" },
+        { value: 300, name: "2024-01" }
+      ],
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: "rgba(0, 0, 0, 0.5)"
+        }
+      }
+    }
+  ]
+});
+
+const barSetOption = ref({
+  title: {
+    text: "",
+    left: "center",
+    top: "bottom",
+    textStyle: {
+      fontSize: 16,
+      fontWeight: "normal"
+    }
+  },
+  tooltip: {
+    trigger: "axis",
+    axisPointer: {
+      type: "shadow"
+    }
+  },
+  // legend: {
+  //   data: xData.value[index]
+  //   // top: "2%",
+  //   // icon: "rect",
+  //   // left: "2%"
+  // },
+  // grid: {
+  //   left: "4%",
+  //   right: "4%",
+  //   bottom: "0",
+  //   top: "10%",
+  //   containLabel: true
+  // },
+  xAxis: {
+    type: "category",
+    data: barTwoData.value.xAxisOne
+    // axisLabel: {
+    //   rotate: 45 // 将标签倾斜45度
+    // }
+  },
+  yAxis: {
+    type: "value"
+    // name: "$",
+    // nameTextStyle: {
+    //   fontWeight: "600"
+    // }
+  },
+  series: [
+    {
+      data: barTwoData.value.saleMoney,
+      type: "bar"
+      // barWidth: 20
+    }
+  ]
+});
+
+const barThreeSet = ref({
+  title: {
+    text: t("home.lastThree"),
+    left: "center",
+    top: "bottom",
+    textStyle: {}
+  },
+  tooltip: {
+    trigger: "axis",
+    axisPointer: {
+      type: "shadow"
+    }
+  },
+  xAxis: {
+    type: "category",
+    data: []
+  },
+  yAxis: {
+    type: "value",
+    name: "US$M"
+  },
+  series: [
+    {
+      data: [
+        {
+          name: "2024-05",
+          value: 2733296.38
+        },
+        {
+          name: "2024-06",
+          value: 2146020.16
+        },
+        {
+          name: "2024-07",
+          value: 1298601.43
+        }
+      ],
+      type: "bar"
+    }
+  ]
+});
+
+const toolbox = ref({
+  feature: {
+    myTool: {
+      show: true, //是否显示
+      title: t("home.switch"), //鼠标悬空的提示文字
+      icon: "path://M200.753 408.251c-57.062 0-103.749 46.687-103.749 103.749s46.687 103.749 103.749 103.749S304.502 569.062 304.502 512s-46.687-103.749-103.749-103.749z m622.494 0c-57.062 0-103.749 46.687-103.749 103.749s46.687 103.749 103.749 103.749S926.996 569.062 926.996 512s-46.687-103.749-103.749-103.749z m-311.247 0c-57.062 0-103.749 46.687-103.749 103.749S454.938 615.749 512 615.749 615.749 569.062 615.749 512 569.062 408.251 512 408.251z", //这个是阿里icon svg 后 b的全部字符串
+      onclick: o => {
+        //参数o 是图表的option 我这里并没有用到
+        console.log(o);
+        console.log(pie);
+        console.log(pieSetOption.value);
+        // o.option.series[0].data = [
+        //   { value: 1000, name: "2024-05" },
+        //   { value: 700, name: "2024-04" },
+        //   { value: 500, name: "2024-03" },
+        //   { value: 400, name: "2024-02" },
+        //   { value: 300, name: "2024-01" }
+        // ];
+        pie.series[0].data = [
+          { value: 1000, name: "2024-05" },
+          { value: 700, name: "2024-04" },
+          { value: 500, name: "2024-03" },
+          { value: 400, name: "2024-02" },
+          { value: 300, name: "2024-01" }
+        ];
+        painting();
+      }
+    }
+  }
+});
+
+//用来创建副本数据
+let pie;
+let bar;
+//绘制图
+const painting = () => {
+  console.log(1111);
+  let myPieOne = echarts.init(document.getElementById("pie-one"));
+  pieSetOption.value.title.text = pieTitle.value[0];
+  myPieOne.setOption(pieSetOption.value);
+  let myPieTwo = echarts.init(document.getElementById("pie-two"));
+  pieSetOption.value.title.text = pieTitle.value[1];
+
+  if (myPieTwo) {
+    pie = JSON.parse(JSON.stringify(pieSetOption.value));
+    pie.toolbox = toolbox.value;
+  }
+  myPieTwo.setOption(pie);
+  let myBarOne = echarts.init(document.getElementById("bar-one"));
+  barSetOption.value.title.text = barTitle.value[0];
+  myBarOne.setOption(barSetOption.value);
+  let myBarTwo = echarts.init(document.getElementById("bar-two"));
+  barSetOption.value.title.text = barTitle.value[1];
+  // if(myBarTwo){
+  //   bar=JSON.parse(JSON.stringify(barSetOption.value));
+  //   bar.series[0].data=barTwoData.value.xAxisTwo
+  // }
+  myBarTwo.setOption(barSetOption.value);
+  let myBarThree = echarts.init(document.getElementById("bar-three"));
+  myBarThree.setOption(barThreeSet.value);
+};
+
+//获取柱状图三的数据
+const getBarThree = () => {
+  getLastThreeMonthSaleMoney().then(res => {
+    res.data.forEach(item => {
+      item.value = (item.total / 1000000).toFixed(3);
+      item.name = item.dateString;
+      barThreeSet.value.xAxis.data.push(item.dateString);
+    });
+    barThreeSet.value.series[0].data = res.data;
+    console.log(barThreeSet.value.xAxis.data, barThreeSet.value.series[0].data);
+    // painting();
+  });
+};
+
+//获取柱状图二的数据
+
+const getBarTwo = () => {
+  getLast12MonthTotalSaleMoneyTop10Product().then(res => {
+    barTwoData.value = res.data;
+    barTwoData.value.xAxisOne = [];
+    barTwoData.value.xAxisTwo = [];
+    res.data.saleMoney.forEach(item => {
+      barTwoData.value.xAxisOne.push(item.name);
+    });
+    res.data.qty.forEach(item => {
+      barTwoData.value.xAxisTwo.push(item.name);
+    });
+  });
+};
+
+//获取柱状图二的数据
+// const getBarOne=()=>{
+//   getTotalSaleMoneyTop10Product().then(res=>{
+
+//   })
+// }
+
+const getPainting = async () => {
+  await getBarTwo();
+  await getBarThree();
+  nextTick(() => {
+    painting();
+  });
+};
+
+onMounted(() => {
+  // getBarThree();
+  getPainting();
+});
+</script>
+
+<template>
+  <div>
+    <!-- <h1>正在开发中，敬请期待...</h1> -->
+    <el-row>
+      <el-col :span="12">
+        <el-row>
+          <el-col :span="12" class="col-style">
+            <div>
+              Overview 总览
+
+              <el-card class="border-box">
+                <el-tooltip
+                  effect="light"
+                  placement="top"
+                  :content="$t('home.latest')"
+                >
+                  <div>2.53</div></el-tooltip
+                >
+                <el-tooltip
+                  effect="light"
+                  placement="top"
+                  :content="$t('home.lastYear')"
+                >
+                  <div>1.52</div></el-tooltip
+                >
+                <el-tooltip
+                  effect="light"
+                  placement="top"
+                  :content="$t('home.value')"
+                >
+                  <div>39.9%</div></el-tooltip
+                >
+              </el-card>
+            </div>
+            <div id="bar-three" style="width: 100%; height: 400px" />
+          </el-col>
+          <el-col :span="12">
+            <div id="pie-one" style="width: 100%; height: 400px" />
+            <div id="pie-two" style="width: 100%; height: 400px" />
+          </el-col>
+        </el-row>
+      </el-col>
+      <el-col :span="12">
+        <div id="bar-one" style="width: 100%; height: 400px" />
+        <div id="bar-two" style="width: 100%; height: 400px" />
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.border-box {
+  margin-top: 20px;
+  // border: 2px solid black;
+  // display: flex;
+  // flex-direction: column;
+  // justify-content: space-around;
+  width: 80%;
+  min-width: 230px;
+  height: 300px;
+  :deep(.el-card__body) {
+    height: 100% !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+  }
+  div {
+    font-weight: 700;
+    font-size: 40px;
+  }
+}
+.col-style {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+</style>

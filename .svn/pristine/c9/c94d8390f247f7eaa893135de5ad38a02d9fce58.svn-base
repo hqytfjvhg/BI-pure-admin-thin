@@ -1,0 +1,770 @@
+<template>
+  <el-row
+    :gutter="24"
+    justify="space-around"
+    type="flex"
+  >
+    <!--前10柱状图  -->
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0"
+    >
+      <el-card
+        class="bar-card"
+        shadow="never"
+      >
+        <!-- 检索框 -->
+        <div>
+          <el-form
+            :model="searchOneForm"
+            style="display: flex; flex-wrap: wrap"
+          >
+            <el-form-item :label="t(`salesBoard.common.date`)">
+              <el-date-picker
+                v-model="searchOneForm.date"
+                type="month"
+                :placeholder="t(`salesBoard.saleChartsThree.datePlaceholder`)"
+                value-format="YYYY-MM-DD"
+              />
+            </el-form-item>
+            <!-- 国家/地区 -->
+            <el-form-item
+              style="margin-left: 20px"
+              class="item_select"
+            >
+              <template #label>
+                <el-select
+                  v-model="searchOneForm.regionSelect"
+                  :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+                  style="width: 100px; margin-right: -5px"
+                  @change="changeArea"
+                >
+                  <el-option
+                    :label="t(`salesBoard.common.nation`)"
+                    value="国家"
+                  />
+                  <el-option
+                    :label="t(`salesBoard.common.region`)"
+                    value="地区"
+                  />
+                </el-select>
+              </template>
+              <!-- 国家 -->
+              <el-select
+                v-if="searchOneForm.regionSelect == '国家'"
+                v-model="searchOneForm.countryList"
+                :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+                multiple
+                style="width: 100%"
+                clearable
+                filterable
+                remote
+              >
+                <el-option
+                  v-for="item in fourAreaList"
+                  :key="item.name"
+                  :label="item.name"
+                  :value="item.resourceId"
+                />
+              </el-select>
+              <!-- 地区 -->
+              <!-- <el-select
+                v-model="searchOneForm.regionId"
+                :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+                clearable
+                v-else
+                filterable
+                remote
+              >
+                <el-option
+                  v-for="item in regionList"
+                  :key="item.resourceId"
+                  :label="item.name"
+                  :value="item.resourceId"
+                />
+              </el-select> -->
+              <el-cascader
+                v-else
+                v-model="searchOneForm.regionId"
+                :options="regionList"
+                :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+                :props="cascaderProps"
+              />
+            </el-form-item>
+            <el-form-item
+              :label="t(`salesBoard.common.user`)"
+              style="margin-left: 20px"
+              class="item_select"
+            >
+              <el-input
+                v-model="searchOneForm.customer"
+                disabled
+              />
+            </el-form-item>
+            <el-form-item style="margin-left: 20px">
+              <el-button
+                type="primary"
+                @click="searchTopTen('one')"
+              >{{
+                t(`salesBoard.saleChartsThree.inquire`)
+              }}</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+        <!-- box2 -->
+        <div class="echarts_box1">
+          <div class="salesTop">
+            <div class="flex justify-between">
+              <!-- <span class="font-medium text-md">
+                销售额前10
+              </span> -->
+            </div>
+            <div class="flex items-start justify-between mt-3">
+              <!-- 销售额前十名 -->
+              <div
+                id="twenty-bar"
+                ref="twentyBarChart"
+                style="width: 100%; height: 600px"
+              />
+            </div>
+          </div>
+          <div class="quantityTop">
+            <div class="flex justify-between">
+              <!-- <span class="font-medium text-md">销售数量前10</span> -->
+            </div>
+            <div class="flex items-start justify-between mt-3">
+              <!-- 销售额前十名 -->
+              <div
+                id="saleQt-bar"
+                ref="saleQtBarChart"
+                style="width: 100%; height: 600px"
+              />
+            </div>
+          </div>
+        </div>
+      </el-card>
+    </re-col>
+    <!-- 月份柱状 -->
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0; margin-top: 10px"
+    >
+      <el-card
+        class="bar-card"
+        shadow="never"
+      >
+        <!-- 检索框 -->
+        <div>
+          <el-form
+            :model="searchTwoForm"
+            style="display: flex; flex-wrap: wrap"
+          >
+            <el-form-item :label="t(`salesBoard.common.date`)">
+              <el-date-picker
+                v-model="searchTwoForm.date"
+                type="month"
+                :placeholder="t(`salesBoard.saleChartsThree.datePlaceholder`)"
+                value-format="YYYY-MM-DD"
+              />
+            </el-form-item>
+            <el-form-item
+              style="margin-left: 20px"
+              class="item_select"
+              label="产品名称"
+            >
+              <el-select
+                v-model="searchTwoForm.productName"
+                placeholder="请选择"
+                style="width: 380px"
+                clearable
+                filterable
+                remote
+              >
+                <el-option
+                  v-for="item in productList"
+                  :key="item.name"
+                  :label="item.name"
+                  :value="item.name"
+                />
+              </el-select>
+            </el-form-item>
+            <!-- 国家/地区 -->
+            <el-form-item
+              style="margin-left: 20px"
+              class="item_select"
+            >
+              <template #label>
+                <el-select
+                  v-model="searchOneForm.regionSelect"
+                  :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+                  style="width: 100px; margin-right: -5px"
+                  @change="changeArea"
+                >
+                  <el-option
+                    :label="t(`salesBoard.common.nation`)"
+                    value="国家"
+                  />
+                  <el-option
+                    :label="t(`salesBoard.common.region`)"
+                    value="地区"
+                  />
+                </el-select>
+              </template>
+              <!-- 国家 -->
+              <el-select
+                v-if="searchOneForm.regionSelect == '国家'"
+                v-model="searchTwoForm.countryList"
+                :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+                multiple
+                style="width: 100%"
+                clearable
+                filterable
+                remote
+              >
+                <el-option
+                  v-for="item in fourAreaList"
+                  :key="item.name"
+                  :label="item.name"
+                  :value="item.resourceId"
+                />
+              </el-select>
+              <!-- 地区 -->
+              <!-- <el-select
+                v-model="searchTwoForm.regionId"
+                :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+                clearable
+                v-else
+                filterable
+                remote
+              >
+                <el-option
+                  v-for="item in regionList"
+                  :key="item.resourceId"
+                  :label="item.name"
+                  :value="item.resourceId"
+                />
+              </el-select> -->
+              <el-cascader
+                v-else
+                v-model="searchTwoForm.regionId"
+                :options="regionList"
+                :placeholder="t(`salesBoard.common.commonPlaceHolder`)"
+                :props="cascaderProps"
+              />
+            </el-form-item>
+            <el-form-item style="margin-left: 20px">
+              <el-button
+                type="primary"
+                @click="searchTopTen('two')"
+              >{{
+                t(`salesBoard.saleChartsThree.inquire`)
+              }}</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+        <div
+          class="flex justify-between"
+          style="margin-top: 10px"
+        >
+          <!-- <span class="font-medium text-md" style="font-weight:600">销售额前20</span> -->
+        </div>
+        <div class="flex items-start justify-between mt-3">
+          <div
+            id="product-bar"
+            ref="productBarChart"
+            style="width: 100%; height: 400px"
+          />
+        </div>
+        <div
+          class="flex items-start justify-between mt-3"
+          style="margin-top: 50px"
+        >
+          <div
+            id="productQyt-bar"
+            ref="productQytBarChart"
+            style="width: 100%; height: 400px"
+          />
+        </div>
+      </el-card>
+    </re-col>
+  </el-row>
+</template>
+<script setup>
+import ReCol from "@/components/ReCol";
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive
+} from "vue";
+import * as echarts from "echarts";
+import { getAllProductBaseInfo } from "@/api/permission/product";
+import { getFourLevelResourceList } from "@/api/permission/resource";
+import {
+  getTopTenData,
+  getTwentyData
+} from "@/api/biDataBoard/saleChartsThree";
+import { storageLocal } from "@/store/utils";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
+
+//获取当前年月日
+const getCurrentDate = () => {
+  let time = new Date();
+  let Year = time.getFullYear(); //获取当前年份
+  let Month = ("0" + (time.getMonth() + 1)).slice(-2); //获取当前月份(0-11,0代表1月)
+  let day = ("0" + time.getDate()).slice(-2); // 日
+  let yearList = Year + "-" + Month + "-" + day; //年月日 (Month+1)月份从0开始所以加1
+  return yearList;
+};
+// 获取其他资源（当前账号拥有的）
+let regionList = ref([]);
+// 获取国家(四级资源)
+let fourAreaList = ref([]);
+const getAreaData = () => {
+  let arr = storageLocal().getItem("user-info")?.resourceInfoVoList;
+  arr.forEach(op => {
+    op.level == 4 ? fourAreaList.value.push(op) : regionList.value.push(op);
+  });
+  searchTwoForm.regionId = regionList.value[0]?.resourceId;
+  searchOneForm.regionId = regionList.value[0]?.resourceId;
+  let newArr = filterTreeByLevel(regionList.value, 3);
+  regionList.value = newArr;
+  fourAreaList.value = fourAreaList.value.concat(countryFourList.value)
+};
+
+// 过滤第四级资源
+let countryFourList = ref([])
+const filterTreeByLevel = (tree, level) => {
+  return tree.map(node => {
+    const newNode = { ...node };
+    if (newNode.level === level) {
+      newNode.childrenList.forEach(op => {
+        countryFourList.value.push(op)
+      })
+      delete newNode.childrenList;
+    } else if (newNode.childrenList && newNode.childrenList.length > 0) {
+      newNode.childrenList = filterTreeByLevel(newNode.childrenList, level);
+    }
+    return newNode;
+
+  });
+};
+
+const cascaderProps = reactive({
+  checkStrictly: true,
+  label: "name",
+  value: "resourceId",
+  children: "childrenList",
+  emitPath: false
+});
+
+// 选择区域或国家
+let areaType = ref("");
+const changeArea = type => {
+  areaType.value = type;
+};
+
+// 前10名产品检索
+let searchOneForm = reactive({
+  customer: storageLocal().getItem("user-info")?.userName || "",
+  regionId: regionList.value[0]?.resourceId || "",
+  regionSelect: "地区",
+  countryList: [],
+  date: getCurrentDate()
+});
+
+// 查询
+const searchTopTen = val => {
+  if (val == "one") {
+    areaType.value == "国家"
+      ? (searchOneForm.regionId = "")
+      : (searchOneForm.countryList = []);
+    getData();
+  } else {
+    areaType.value == "国家"
+      ? (searchTwoForm.regionId = "")
+      : (searchTwoForm.countryList = []);
+    getTopTwentyData();
+  }
+};
+
+// 获取top10数据
+const getData = () => {
+  getTopTenData(searchOneForm).then(res => {
+    let amountArr = res?.data?.saleMonsy || [];
+    let qtyArr = res?.data?.qty || [];
+    nextTick(() => {
+      receivableBar(amountArr);
+      saleQtBar(qtyArr);
+    });
+  });
+};
+
+// 前10销售数量
+let saleQtBarChart = ref(null);
+const saleQtBar = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(op => {
+    yData.push(op.data);
+    xData.push(op.productName);
+  });
+  let myChart = echarts.init(document.getElementById("saleQt-bar"));
+  document.getElementById("saleQt-bar").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t("salesBoard.saleChartsThree.salesQTYTen"),
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    // legend: {
+    //   top: '2%',
+    //   icon: 'rect',
+    //   left: '2%'
+    // },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        rotate: 45 // 将标签倾斜45度
+      }
+    },
+    yAxis: {
+      type: "value",
+      // name: "个",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 20
+      }
+    ]
+  });
+};
+
+// 前10销售金额
+let twentyBarChart = ref(null);
+const receivableBar = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(op => {
+    yData.push(op.data);
+    xData.push(op.productName);
+  });
+  let myChart = echarts.init(document.getElementById("twenty-bar"));
+  document.getElementById("twenty-bar").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t("salesBoard.saleChartsThree.salesTen"),
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    // legend: {
+    //   top: '2%',
+    //   icon: 'rect',
+    //   left: '2%'
+    // },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        rotate: 45 // 将标签倾斜45度
+      }
+    },
+    yAxis: {
+      type: "value",
+      name: "$",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 20
+      }
+    ]
+  });
+};
+
+/////////////前20
+
+//产品list
+let productList = ref([]);
+const getProductData = () => {
+  getAllProductBaseInfo().then(res => {
+    productList.value = res.data;
+    searchTwoForm.productName = res.data[0]?.name || "";
+  });
+};
+
+// 前20名产品检索
+let searchTwoForm = reactive({
+  regionId: regionList.value[0]?.resourceId || "",
+  date: getCurrentDate(),
+  productName: productList.value[0]?.name || "",
+  countryList: []
+});
+
+// 获取top20数据
+const getTopTwentyData = () => {
+  getTwentyData(searchTwoForm).then(res => {
+    let oneArr = res.data?.saleMonsy || [];
+    let twoArr = res.data?.qty || [];
+    nextTick(() => {
+      productAmountBar(oneArr);
+      productQtyBar(twoArr);
+    });
+  });
+};
+
+// 前20销售金额
+let productBarChart = ref(null);
+const productAmountBar = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(op => {
+    yData.push(op.data);
+    xData.push(op.distributorName);
+  });
+  let myChart = echarts.init(document.getElementById("product-bar"));
+  document.getElementById("product-bar").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t("salesBoard.saleChartsThree.salesTwenty"),
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    // legend: {
+    //   top: '2%',
+    //   icon: 'rect',
+    //   left: '2%'
+    // },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        rotate: 45 // 将标签倾斜45度
+      }
+    },
+    yAxis: {
+      type: "value",
+      name: "$",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 20
+      }
+    ]
+  });
+};
+
+// 前20销售数量
+let productQytBarChart = ref(null);
+const productQtyBar = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(op => {
+    yData.push(op.data);
+    xData.push(op.distributorName);
+  });
+  let myChart = echarts.init(document.getElementById("productQyt-bar"));
+  document
+    .getElementById("productQyt-bar")
+    .removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t("salesBoard.saleChartsThree.salesQTYTwenty"),
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    // legend: {
+    //   top: '2%',
+    //   icon: 'rect',
+    //   left: '2%'
+    // },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        rotate: 45 // 将标签倾斜45度
+      }
+    },
+    yAxis: {
+      type: "value",
+      // name: "个",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar",
+        barWidth: 20
+      }
+    ]
+  });
+};
+
+onMounted(() => {
+  getCurrentDate();
+  getProductData();
+  getAreaData();
+  getData();
+  getTopTwentyData();
+  // 监听语言切换，重新渲染图表
+  window.addEventListener("setItemEvent", e => {
+    getData();
+    getTopTwentyData();
+  });
+});
+
+onUnmounted(() => {
+  // 移除对 sessionStorage 的监听
+  window.removeEventListener("setItemEvent", () => { });
+});
+</script>
+<style lang="scss" scoped>
+:deep(.el-card) {
+  --el-card-border-color: none;
+
+  /* 解决概率进度条宽度 */
+  .el-progress--line {
+    width: 85%;
+  }
+
+  /* 解决概率进度条字体大小 */
+  .el-progress-bar__innerText {
+    font-size: 15px;
+  }
+
+  /* 隐藏 el-scrollbar 滚动条 */
+  .el-scrollbar__bar {
+    display: none;
+  }
+
+  /* el-timeline 每一项上下、左右边距 */
+  .el-timeline-item {
+    margin: 0 6px;
+  }
+}
+
+.main-content {
+  margin: 20px 20px 0 !important;
+  background: none !important;
+  padding: 0 !important;
+}
+.echarts_box1 {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  .salesTop {
+    width: 48%;
+  }
+  .quantityTop {
+    width: 48%;
+  }
+  .font-medium {
+    font-weight: 600 !important;
+  }
+}
+
+:deep(.item_select) {
+  min-width: 250px; /* 设置最小宽度 */
+}
+</style>

@@ -1,0 +1,255 @@
+<template>
+  <div>
+    <Table
+      v-model:formData="formData"
+      :page="page"
+      :pageSizes="pageSizes"
+      :showIndex="true"
+      :showPage="false"
+      :tableData="tableData"
+      @refresh="getBudgetList"
+    >
+      <template #formItem>
+        <el-form-item :label="t('permission.budget.year')"
+          ><el-input v-model="formData.year"
+        /></el-form-item>
+        <el-form-item :label="t('permission.budget.distributor')">
+          <!-- <el-input v-model="formData.distributorId" /> -->
+          <el-select
+            v-model="formData.distributorId"
+            style="width: 150px"
+            clearable
+          >
+            <el-option
+              v-for="item in distributorOption"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            /> </el-select
+        ></el-form-item>
+        <el-form-item>
+          <el-button type="success" @click="handleAdd">{{
+            t("status.add")
+          }}</el-button></el-form-item
+        >
+        <el-form-item>
+          <el-button type="primary" @click="handleDown">{{
+            t("status.down")
+          }}</el-button></el-form-item
+        >
+        <!-- <el-form-item>
+          <el-upload
+            class="upload-demo"
+            action="#"
+            accept=".xlsx,.xls"
+            :on-remove="handleRemove"
+            :on-exceed="handleExceed"
+            :on-change="loadFile"
+            :http-request="uploadHttpRequest"
+            :show-file-list="false"
+            :auto-upload="false"
+          >
+            <el-button type="warning">上传文件</el-button>
+          </el-upload>
+        </el-form-item> -->
+      </template>
+      <template #columns>
+        <el-table-column prop="name" :label="t('permission.budget.name')" />
+        <el-table-column prop="enName" :label="t('permission.budget.enName')" />
+        <el-table-column
+          prop="lineTypeName"
+          :label="t('permission.budget.lineTypeName')"
+        />
+        <el-table-column prop="remark" :label="t('permission.budget.remark')" />
+        <el-table-column prop="sort" :label="t('permission.budget.sort')" />
+
+        <el-table-column :label="t('status.operate')">
+          <template #default="{ row }">
+            <el-button type="primary" @click="handleEdit(row)">{{
+              t("status.edit")
+            }}</el-button>
+            <el-button type="danger" @click="handleDel(row)">{{
+              t("status.del")
+            }}</el-button>
+          </template>
+        </el-table-column>
+      </template>
+    </Table>
+
+    <Dialog :dialog="dialog" @confirm="submitBudget">
+      <el-form ref="ruleForm" :model="addFormData" :rules="rules">
+        <el-form-item :label="t('permission.budget.year')" prop="year">
+          <el-input v-model="addFormData.year" />
+        </el-form-item>
+        <el-form-item :label="t('status.operate')" prop="excel">
+          <el-upload
+            class="upload-demo"
+            action="#"
+            accept=".xlsx,.xls"
+            :on-remove="handleRemove"
+            :on-exceed="handleExceed"
+            :on-change="loadFile"
+            :http-request="uploadHttpRequest"
+            :auto-upload="false"
+          >
+            <el-button type="warning">{{ t("status.export") }}</el-button>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+    </Dialog>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive } from "vue";
+import Table from "@/components/table/index.vue";
+import { useI18n } from "vue-i18n";
+import {
+  downloadExcel,
+  addForecastData,
+  selectForecastDataByYear
+} from "@/api/permission/budget";
+import * as XLSX from "xlsx/xlsx.mjs";
+import Dialog from "@/components/dialog/index.vue";
+import { ElMessage } from "element-plus";
+import { selectDistributor } from "@/api/permission/distributors";
+
+const { t } = useI18n();
+
+const distributorOption = ref([]);
+const getDistributorList = () => {
+  selectDistributor().then(res => {
+    if (res.success) {
+      distributorOption.value = res.data;
+    }
+  });
+};
+//获取列表数据
+const formData = reactive({});
+const tableData = ref([]);
+const monthList = [
+  { label: t("permission.budget.monthOne") },
+  { label: t("permission.budget.monthTwo") },
+  { label: t("permission.budget.monthThree") },
+  { label: t("permission.budget.monthFour") },
+  { label: t("permission.budget.monthFive") },
+  { label: t("permission.budget.monthSix") },
+  { label: t("permission.budget.monthSeven") },
+  { label: t("permission.budget.monthEight") },
+  { label: t("permission.budget.monthNine") },
+  { label: t("permission.budget.monthTen") },
+  { label: t("permission.budget.monthEleven") },
+  { label: t("permission.budget.monthTwelve") }
+];
+const getBudgetList = () => {
+  if (formData.distributorId === undefined) {
+    delete formData.distributorId;
+  }
+  if (!formData.year) {
+    ElMessage.error(t("permission.budget.yaerReg"));
+    return;
+  }
+
+  selectForecastDataByYear(formData).then(res => {
+    if (res.success) {
+      tableData.value = res.data;
+    }
+  });
+};
+
+//下载模板文件
+const handleDown = () => {
+  downloadExcel();
+};
+
+//上传文件
+const budget = ref([]);
+const loadFile = file => {
+  console.log(file, "文件");
+  if (file) {
+    const reader = new FileReader();
+    reader.readAsBinaryString(file.raw);
+
+    reader.onload = ev => {
+      try {
+        const f = ev.target.result;
+        const workbook = XLSX.read(f, { type: "binary" });
+        let excelData = [];
+        for (let i = 0; i < workbook.SheetNames.length; i++) {
+          const worksheet = workbook.Sheets[workbook.SheetNames[i]];
+          // 将sheet转换为json数组
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          excelData.push(jsonData);
+        }
+        console.log(excelData, excelData[0], excelData[1], "文件数据");
+        const monthList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        //第一张工作表找对应的id
+        excelData[0].splice(0, 1);
+
+        excelData[0][0].map((item, index) => {
+          const id = excelData[1].find(id => id[1] == excelData[0][0][0]);
+          budget.value.push({
+            distributorId: id[0],
+            distributorName: excelData[0][0][0],
+            month: monthList[index],
+            forecast: excelData[0][0][index + 1],
+            year: addFormData.value.year
+          });
+        });
+        budget.value.splice(-1, 1);
+        console.log(budget.value, "预算额");
+      } catch (err) {
+        console.log(err);
+      }
+    };
+  }
+};
+
+//新增
+const dialog = reactive({
+  show: false,
+  title: t("permission.budget.addTitle"),
+  width: "50%"
+});
+const addFormData = ref({});
+const rules = {
+  year: [
+    {
+      required: true,
+      message: t("permission.budget.yaerReg"),
+      trigger: "blur"
+    }
+  ]
+  // excel: [{ required: true }]
+};
+const handleAdd = () => {
+  dialog.show = true;
+};
+
+//提交
+const ruleForm = ref(null);
+const submitBudget = () => {
+  if (ruleForm.value) {
+    ruleForm.value.validate(valid => {
+      if (valid) {
+        addForecastData(budget.value).then(res => {
+          if (res.success) {
+            dialog.show = false;
+            ElMessage.success(t("status.pureSuccess"));
+          }
+        });
+      }
+    });
+  }
+};
+
+onMounted(() => {
+  getDistributorList();
+});
+</script>
+
+<style lang="scss" scoped>
+:deep(.el-upload-list__item-file-name) {
+  overflow: auto;
+}
+</style>

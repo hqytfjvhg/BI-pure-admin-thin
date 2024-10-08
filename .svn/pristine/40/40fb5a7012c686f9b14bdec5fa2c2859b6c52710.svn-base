@@ -1,0 +1,521 @@
+<template>
+  <el-row :gutter="24" justify="space-around" type="flex">
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0"
+    >
+      <el-card class="bar-card" shadow="never">
+        <div class="flex justify-between">
+          <!-- <span class="font-medium text-md">{{
+            t("salesBoard.sales")
+          }}</span> -->
+          <el-form
+            :inline="true"
+            :model="formData"
+            :rules="rules"
+            ref="rulesForm"
+          >
+            <el-form-item :label="t('salesBoard.common.date')" prop="date">
+              <el-date-picker
+                v-model="formData.date"
+                type="date"
+                placeholder="Pick a Date"
+                format="YYYY/MM/DD"
+                value-format="YYYY-MM-DD"
+                @change="handleChangeDate"
+              />
+            </el-form-item>
+            <el-form-item
+              :label="t('salesBoard.common.customer')"
+              prop="customer"
+            >
+              <el-select
+                v-model="formData.customer"
+                style="width: 240px"
+                filterable
+                clearable
+              >
+                <el-option
+                  v-for="item in customerOptions"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                />
+              </el-select> </el-form-item
+            ><el-form-item
+              ><el-button type="primary" @click="getDataSaleOne">{{
+                t("status.inquire")
+              }}</el-button></el-form-item
+            >
+          </el-form>
+        </div>
+        <div class="flex items-start justify-between mt-3">
+          <el-row style="width: 100%; height: 600px">
+            <el-col :span="12"
+              ><div id="salesTop" style="width: 100%; height: 600px"
+            /></el-col>
+            <el-col :span="12"
+              ><div id="qtyTop" style="width: 100%; height: 600px"
+            /></el-col>
+          </el-row>
+        </div>
+      </el-card>
+    </re-col>
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0; margin-top: 20px"
+    >
+      <el-card class="bar-card" shadow="never">
+        <div class="flex justify-between">
+          <el-form
+            :inline="true"
+            :model="formDataByType"
+            :rules="rulesType"
+            ref="rulesTypeForm"
+          >
+            <el-form-item :label="t('salesBoard.common.date')" prop="date">
+              <el-date-picker
+                v-model="formDataByType.date"
+                type="date"
+                placeholder="Pick a Date"
+                format="YYYY/MM/DD"
+                value-format="YYYY-MM-DD"
+                @change="handleChangeDate"
+              />
+            </el-form-item>
+            <el-form-item :label="t('salesBoard.common.type')" prop="type">
+              <el-select
+                v-model="formDataByType.type"
+                style="width: 140px"
+                filterable
+                clearable
+                @change="handleChangeType"
+              >
+                <el-option
+                  v-for="item in typeOptions"
+                  :key="item.name"
+                  :label="item.label"
+                  :value="item.name"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item prop="typeId">
+              <el-select
+                v-model="formDataByType.typeId"
+                style="width: 140px"
+                filterable
+                clearable
+              >
+                <el-option
+                  v-for="item in attributesOptions"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item
+              ><el-button type="primary" @click="getDataSaleTwo">{{
+                t("status.inquire")
+              }}</el-button></el-form-item
+            >
+          </el-form>
+        </div>
+        <div class="flex items-start justify-between mt-3">
+          <div
+            id="salesThree"
+            ref="salesThree"
+            style="width: 100%; height: 450px"
+          />
+        </div>
+      </el-card>
+    </re-col>
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0; margin-top: 20px"
+    >
+      <el-card class="bar-card" shadow="never">
+        <div class="flex justify-between">
+          <span class="font-medium text-md">{{
+            t("salesBoard.saleChartsTwo.salesFour")
+          }}</span>
+        </div>
+        <div class="flex items-start justify-between mt-3">
+          <div
+            id="salesFour"
+            ref="salesFour"
+            style="width: 100%; height: 450px"
+          />
+        </div>
+      </el-card>
+    </re-col>
+  </el-row>
+</template>
+
+<script setup>
+import ReCol from "@/components/ReCol";
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive
+} from "vue";
+import * as echarts from "echarts";
+import { useI18n } from "vue-i18n";
+import {
+  getTopNumberProductSaleInfoByCondition,
+  getTopNumberProductTypeSaleInfoByCondition
+} from "@/api/biDataBoard/saleChartsTwo";
+import { getAllSeries, getAllFunction } from "@/api/permission/product";
+import { storageLocal } from "@pureadmin/utils";
+
+const { t } = useI18n();
+
+const customerOptions = ref(
+  storageLocal().getItem("user-info")?.distributorList
+);
+
+const typeOptions = ref([
+  { label: t("salesBoard.saleChartsTwo.series"), name: "series" },
+  { label: t("salesBoard.saleChartsTwo.function"), name: "function" }
+]);
+
+const transTime = date => {
+  let year = date.getFullYear();
+  let month = ("0" + (date.getMonth() + 1)).slice(-2); // 月份是从0开始的，所以需要加1；同时补零
+  let day = ("0" + date.getDate()).slice(-2); // 日期补零
+  return year + "-" + month + "-" + day;
+};
+
+const formData = reactive({
+  date: transTime(new Date()),
+  customer: customerOptions.value[0]
+});
+
+const attributesOptions = ref([]);
+
+const formDataByType = ref({
+  date: transTime(new Date()),
+  type: typeOptions.value[0]?.name,
+  typeId: null
+});
+
+// const handleChangeType = async val => {
+//   if (val === "series") {
+//     await getAllSeries().then(res => {
+//       if (res.success) {
+//         attributesOptions.value = res.data;
+//       }
+//     });
+//   } else if (val === "function") {
+//     await getAllFunction().then(res => {
+//       if (res.success) {
+//         attributesOptions.value = res.data;
+//       }
+//     });
+//   }
+//   formDataByType.value.typeId = attributesOptions?.value[0]?.id;
+// };
+
+//查询产品系列
+const seriesOption = ref([]);
+const getProductSeries = () => {
+  getAllSeries().then(res => {
+    if (res.success) {
+      seriesOption.value = res.data;
+      handleChangeType("series");
+    }
+  });
+};
+//查询产品功能
+const functionOption = ref([]);
+const getProductFunction = () => {
+  getAllFunction().then(res => {
+    if (res.success) {
+      functionOption.value = res.data;
+    }
+  });
+};
+
+const handleChangeType = async val => {
+  if (val === "series") {
+    attributesOptions.value = seriesOption.value;
+  } else if (val === "function") {
+    attributesOptions.value = functionOption.value;
+  }
+  formDataByType.value.typeId = attributesOptions?.value[0]?.id;
+};
+
+//表一
+const rules = ref({
+  date: [
+    {
+      required: true,
+      message: t("salesBoard.saleChartsTwo.dateReg"),
+      trigger: "change"
+    }
+  ],
+  customer: [
+    {
+      required: true,
+      message: t("salesBoard.saleChartsTwo.customerReg"),
+      trigger: "change"
+    }
+  ]
+});
+const rulesForm = ref(null);
+const getDataSaleOne = () => {
+  if (rulesForm.value) {
+    rulesForm.value.validate(valid => {
+      if (valid) {
+        getTopNumberProductSaleInfoByCondition(formData).then(res => {
+          let salesOne = res.data.saleMonsy;
+          let salesTwo = res.data.qty;
+          nextTick(() => {
+            sales(salesOne, 0, t("salesBoard.saleChartsTwo.salesTotal"));
+            sales(salesTwo, 1, t("salesBoard.saleChartsTwo.qtyTotal"));
+          });
+        });
+      }
+    });
+  }
+};
+// const titleData = ref([
+//   t("salesBoard.saleChartsTwo.salesTotal"),
+//   t("salesBoard.saleChartsTwo.qtyTotal"),
+//   t("salesBoard.saleChartsTwo.salesThree"),
+//   t("salesBoard.saleChartsTwo.salesFour")
+// ]);
+const sales = (arr, index, title) => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(op => {
+    yData.push(op.data);
+    xData.push(op.productName);
+  });
+
+  let option = {
+    title: {
+      text: title,
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    // legend: {
+    //   data: xData
+    //   // top: "2%",
+    //   // icon: "rect",
+    //   // left: "2%"
+    // },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        interval: 0,
+        rotate: index === 1 || index === 0 ? 45 : 0, // 将标签倾斜45度
+        formatter:
+          index === 2 || index === 3
+            ? function (value) {
+                var re = /(.{1,15})(?=(?:\s|$))/g;
+                return value.replace(re, "$1\n"); // 每个字符换行，可根据实际需求调整
+              }
+            : null
+      }
+    },
+    yAxis: {
+      type: "value",
+      // name: "US$m",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: "bar"
+      }
+    ]
+  };
+
+  if (index === 0) {
+    let salesTop = echarts.init(document.getElementById("salesTop"));
+    salesTop.clear();
+    document.getElementById("salesTop").removeAttribute("_echarts_instance_");
+    option && salesTop.setOption(option);
+  } else if (index === 1) {
+    let qtyTop = echarts.init(document.getElementById("qtyTop"));
+    qtyTop.clear();
+    document.getElementById("qtyTop").removeAttribute("_echarts_instance_");
+    option && qtyTop.setOption(option);
+  } else if (index === 2) {
+    let salesThree = echarts.init(document.getElementById("salesThree"));
+    salesThree.clear();
+    document.getElementById("salesThree").removeAttribute("_echarts_instance_");
+    option && salesThree.setOption(option);
+  } else if (index === 3) {
+    let salesFour = echarts.init(document.getElementById("salesFour"));
+    salesFour.clear();
+    document.getElementById("salesFour").removeAttribute("_echarts_instance_");
+    option && salesFour.setOption(option);
+  }
+};
+
+//表二和表三
+const rulesType = ref({
+  date: [
+    {
+      required: true,
+      message: t("salesBoard.saleChartsTwo.dateReg"),
+      trigger: "change"
+    }
+  ],
+  type: [
+    {
+      required: true,
+      message: t("salesBoard.saleChartsTwo.typeReg"),
+      trigger: "change"
+    }
+  ],
+  typeId: [
+    {
+      required: true,
+      message: t("salesBoard.saleChartsTwo.typeIdReg"),
+      trigger: "change"
+    }
+  ]
+});
+const rulesTypeForm = ref(null);
+const getDataSaleTwo = () => {
+  if (rulesTypeForm.value) {
+    rulesTypeForm.value.validate(valid => {
+      if (valid) {
+        if (formDataByType.value.type == "series") {
+          delete formDataByType.value.function;
+          formDataByType.value.series = formDataByType.value.typeId;
+        } else if (formDataByType.value.type == "function") {
+          delete formDataByType.value.series;
+          formDataByType.value.function = formDataByType.value.typeId;
+        }
+        getTopNumberProductTypeSaleInfoByCondition(formDataByType.value).then(
+          res => {
+            let salesThree = res.data.saleMonsy;
+            let salesFour = res.data.qty;
+            nextTick(() => {
+              sales(salesThree, 2, t("salesBoard.saleChartsTwo.salesThree"));
+              sales(salesFour, 3, t("salesBoard.saleChartsTwo.salesFour"));
+            });
+          }
+        );
+      }
+    });
+  }
+};
+
+onMounted(async () => {
+  await getProductSeries();
+  await getProductFunction();
+  // await handleChangeType("series");
+  getDataSaleOne();
+  getDataSaleTwo();
+  window.addEventListener("setItemEvent", e => {
+    handleChangeType("series");
+    getDataSaleOne();
+    getDataSaleTwo();
+  });
+});
+
+onUnmounted(() => {
+  // 移除对 sessionStorage 的监听
+  window.removeEventListener("setItemEvent", () => {});
+});
+</script>
+
+<style lang="scss" scoped>
+:deep(.el-card) {
+  --el-card-border-color: none;
+
+  /* 解决概率进度条宽度 */
+  .el-progress--line {
+    width: 85%;
+  }
+
+  /* 解决概率进度条字体大小 */
+  .el-progress-bar__innerText {
+    font-size: 15px;
+  }
+
+  /* 隐藏 el-scrollbar 滚动条 */
+  .el-scrollbar__bar {
+    display: none;
+  }
+
+  /* el-timeline 每一项上下、左右边距 */
+  .el-timeline-item {
+    margin: 0 6px;
+  }
+}
+
+.main-content {
+  margin: 20px 20px 0 !important;
+  background: none !important;
+  padding: 0 !important;
+}
+</style>

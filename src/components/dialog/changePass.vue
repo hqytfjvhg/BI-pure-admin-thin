@@ -1,0 +1,208 @@
+<template>
+  <div class="syMain">
+    <el-dialog
+      ref="dailog"
+      v-model="dialog.show"
+      :title="t('pawd.title')"
+      center
+    >
+      <div>
+        <!-- <el-steps :active="active" align-center>
+          <el-step title="登录" />
+          <el-step title="修改密码" />
+          <el-step title="完成" />
+        </el-steps> -->
+        <!-- <div v-if="active == 1" class="topTip">
+          您好，为了您的账号安全，请点击下一步修改密码
+        </div> -->
+        <div class="form-content">
+          <el-form
+            ref="ruleForm"
+            :model="formData"
+            status-icon
+            :rules="rules"
+            label-position="top"
+            label-width="auto"
+          >
+            <!-- <el-form-item v-show="active == 1" label="账号">
+              <el-input
+                v-model="formData.username"
+                :disabled="true"
+                size="large"
+              />
+            </el-form-item> -->
+            <!-- <template> -->
+            <el-form-item
+              :label="t('pawd.new')"
+              prop="newPwd"
+              class="password-item"
+            >
+              <el-input type="text" v-model="formData.newPwd" size="large" />
+            </el-form-item>
+            <el-form-item
+              :label="t('pawd.confirm')"
+              prop="password"
+              class="password-item"
+            >
+              <el-input type="text" v-model="formData.password" size="large" />
+            </el-form-item>
+            <!-- </template> -->
+          </el-form>
+          <div>
+            <!-- <el-button @click="resetForm()" style="width: 47%" size="large"
+              >上一步</el-button
+            > -->
+            <el-button
+              type="primary"
+              @click="submitForm()"
+              style="width: 100%"
+              size="large"
+              @keyup.enter="submitForm"
+              >{{ t("status.confirm") }}</el-button
+            >
+          </div>
+          <!-- <div v-else>
+            <el-button
+              type="primary"
+              @click="nextTip"
+              size="large"
+              class="button-style"
+              >下一步</el-button
+            >
+          </div> -->
+        </div>
+        <!-- <div v-if="active === 3">
+          <el-result icon="success" title="修改密码成功" v-if="isSuccess">
+            <template #extra>
+              <el-button type="primary" @click="handleClose()" size="large"
+                >重新关闭弹窗
+              </el-button>
+            </template>
+          </el-result>
+          <el-result icon="error" title="修改密码失败" v-else>
+            <template #extra>
+              <el-button type="primary" @click="resetForm()" size="large"
+                >重新修改</el-button
+              >
+            </template>
+          </el-result>
+        </div> -->
+        <!-- <div v-if="active == 2" class="tip">
+          <p>温馨提示</p>
+          <p>1、密码长度在4-16个字符</p>
+          <p>2、密码必须由数字、英文字符组成</p>
+        </div> -->
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script setup>
+import { useI18n } from "vue-i18n";
+import { ref, computed } from "vue";
+import { useNav } from "@/layout/hooks/useNav";
+import { updateOneselfPassword } from "@/api/permission/user";
+import { ElMessage } from "element-plus";
+
+const { username } = useNav();
+
+const { t } = useI18n();
+
+const formData = ref({
+  username: username,
+  newPwd: "",
+  password: ""
+});
+const active = ref(1);
+const props = defineProps({
+  dialog: {
+    type: Object,
+    default: () => {
+      return { show: false };
+    }
+  }
+});
+
+const nextTip = () => {
+  active.value += 1;
+};
+
+const passwordRegex = /^[a-zA-Z0-9]{4,16}$/;
+const validatePassword = (rule, value, callback) => {
+  if (!passwordRegex.test(value)) {
+    callback(new Error("请输入4-16位只包含字母和数字的密码"));
+  } else {
+    callback();
+  }
+};
+
+const rules = computed(() => {
+  return {
+    newPwd: [
+      { required: true, message: "" },
+      { validator: validatePassword, trigger: "blur" }
+    ],
+    password: [
+      { required: true, message: "" },
+      { validator: validatePassword, trigger: "blur" }
+    ]
+  };
+});
+
+//提交
+const ruleForm = ref(null);
+const submitForm = () => {
+  if (formData.value.password !== formData.value.newPwd) {
+    return ElMessage.error(t("pawd.passReg"));
+  }
+  if (ruleForm.value) {
+    ruleForm.value.validate(valid => {
+      if (valid) {
+        updateOneselfPassword(formData.value).then(res => {
+          if (res.data) {
+            ElMessage.success(t("status.pureSuccess"));
+            props.dialog.show = false;
+          } else {
+            ElMessage.error(t("status.pureError"));
+          }
+        });
+      }
+    });
+  }
+};
+</script>
+<style lang="scss" scoped>
+.syMain {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  .topTip {
+    text-align: center;
+    line-height: 30px;
+    color: red;
+    font-size: 15px;
+    margin: 20px 0;
+    font-family: "Microsoft Yahei";
+  }
+  .form-content {
+    width: 60%;
+    margin: 20px auto;
+    text-align: center;
+  }
+  .button-style {
+    width: 97%;
+    margin-right: 12px;
+  }
+  .tip {
+    color: red;
+    margin: 20px auto 0 auto;
+    text-align: left;
+    p {
+      margin: 5px;
+    }
+  }
+  .el-step__title {
+    font-size: 14px;
+  }
+}
+</style>

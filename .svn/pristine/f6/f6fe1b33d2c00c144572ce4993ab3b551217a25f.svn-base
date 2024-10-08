@@ -1,0 +1,1135 @@
+<template>
+  <div id="printContent" class="page-style">
+    <!-- 检索框 -->
+    <el-form :inline="true" :model="formData" style="background-color: #fff">
+      <el-form-item
+        style="margin-left: 20px"
+        class="item_select"
+        :label="t(`analysis.distributor`)"
+        prop="distributor"
+      >
+        <el-select
+          v-model="formData.distributorName"
+          style="width: 240px"
+          filterable
+          remote
+        >
+          <el-option-group
+            v-for="group in distributorList"
+            :key="group.label"
+            :label="group.label"
+          >
+            <el-option
+              v-for="item in group.options"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-option-group>
+        </el-select>
+      </el-form-item>
+      <el-form-item class="form-style">
+        <el-button type="primary" @click="getData">{{
+          t(`status.inquire`)
+        }}</el-button>
+      </el-form-item>
+      <el-form-item class="form-style">
+        <el-button type="warning" v-print="{ id: 'printContent' }">{{
+          t(`status.down`)
+        }}</el-button>
+        <!-- <el-button v-print="{ id: 'six-table' }">表格打印</el-button> -->
+      </el-form-item>
+    </el-form>
+
+    <el-row :gutter="24" justify="space-around" type="flex" class="onecharts">
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("analysis.title1") }}
+          </h4>
+          <div
+            class="flex items-center justify-around"
+            style="margin-bottom: 30px"
+          >
+            <el-table
+              :data="oneTableData"
+              style="width: 45%"
+              :cell-style="{ textAlign: 'center' }"
+              :header-cell-style="{ textAlign: 'center' }"
+            >
+              <el-table-column :label="t(`analysis.ytoy`)">
+                <el-table-column :label="t(`analysis.year`)" prop="year" />
+                <el-table-column :label="t(`analysis.month`)" prop="month" />
+                <el-table-column :label="t(`analysis.month`)" prop="amount" />
+              </el-table-column>
+            </el-table>
+            <el-table
+              :data="twoTableData"
+              style="width: 45%"
+              :cell-style="{ textAlign: 'center' }"
+              :header-cell-style="{ textAlign: 'center' }"
+            >
+              <el-table-column :label="t(`analysis.rate`)">
+                <el-table-column :label="t(`analysis.year`)" prop="year" />
+                <el-table-column :label="t(`analysis.month`)" prop="amount" />
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="flex items-start justify-between mt-3">
+            <div
+              id="one-bar"
+              style="width: 100%; height: 450px"
+              ref="oneChart"
+            />
+          </div>
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("analysis.title2") }}
+          </h4>
+          <div class="flex items-center justify-around">
+            <el-table
+              :data="threeTableData"
+              style="width: 90%"
+              :cell-style="{ textAlign: 'center' }"
+              :header-cell-style="{ textAlign: 'center' }"
+            >
+              <el-table-column :label="t(`analysis.amount2`)">
+                <el-table-column :label="t(`analysis.year`)" prop="year" />
+                <el-table-column :label="t(`analysis.Q1`)" prop="Q1" />
+                <el-table-column :label="t(`analysis.Q2`)" prop="Q2" />
+                <el-table-column :label="t(`analysis.Q3`)" prop="Q3" />
+                <el-table-column :label="t(`analysis.Q4`)" prop="Q4" />
+                <el-table-column :label="t(`analysis.total`)" prop="total" />
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px] three-style"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <div class="flex justify-between">
+            <h4 class="h4-style">
+              {{ t("analysis.title3") }}
+            </h4>
+          </div>
+          <div class="flex items-start justify-between mt-3">
+            <div
+              id="three-bar"
+              style="width: 100%; height: 600px; min-width: 800px"
+              ref="threeBar"
+            />
+          </div>
+        </el-card>
+      </re-col>
+
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <el-form :model="formData" :inline="true" class="four-style">
+            <el-form-item :label="t('analysis.button')">
+              <el-radio-group
+                v-model="formData.notAllYear"
+                @change="changeData"
+              >
+                <el-radio-button
+                  :label="t('analysis.allYear')"
+                  :value="false"
+                />
+                <el-radio-button :label="t('analysis.term')" :value="true" />
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+          <h4 class="h4-style">
+            {{ t("analysis.title4") }}
+          </h4>
+          <el-form :inline="true" :model="fourForm" class="form-style">
+            <el-form-item :label="t('analysis.four')">
+              <el-select
+                v-model="fourForm.sale"
+                style="width: 240px"
+                filterable
+                remote
+                @change="getFourData"
+              >
+                <el-option
+                  v-for="item in saleOption"
+                  :key="item.label"
+                  :label="item.label"
+                  :value="item.value"
+                /> </el-select
+            ></el-form-item>
+          </el-form>
+          <div id="four-bar" style="width: 100%; height: 450px" ref="fourBar" />
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px] five-style"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("analysis.title5") }}
+          </h4>
+          <el-form :inline="true" :model="fiveForm" class="form-style">
+            <el-form-item :label="t('analysis.five')">
+              <el-select
+                v-model="fiveForm.sale"
+                style="width: 240px"
+                filterable
+                remote
+                @change="getFiveData"
+              >
+                <el-option
+                  v-for="item in qtyOption"
+                  :key="item.label"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-form>
+          <div id="five-bar" style="width: 100%; height: 450px" ref="fiveBar" />
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px] six-style"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("analysis.title6") }}
+          </h4>
+          <div class="flex items-center justify-around">
+            <!-- <el-table
+              :data="sixTableData"
+              border
+              style="width: 90%"
+              height="450"
+              :cell-style="{ textAlign: 'center' }"
+              :header-cell-style="{ textAlign: 'center' }"
+            >
+              <el-table-column :label="t('analysis.prod')" prop="productName" />
+              <el-table-column :label="now - 1 + '(QTY)'" prop="lastSaleQTY" />
+              <el-table-column
+                :label="now - 1 + '(Amount)'"
+                prop="lastSaleMoney"
+              />
+              <el-table-column :label="now + '(QTY)'" prop="currentSaleQTY" />
+              <el-table-column
+                :label="now + '(Amount)'"
+                prop="currentSaleMoney"
+              />
+            </el-table> -->
+            <table
+              cellpadding="6"
+              cellspacing="6"
+              class="table-style"
+              id="six-table"
+            >
+              <thead>
+                <tr>
+                  <th>{{ t("analysis.prod") }}</th>
+                  <th>{{ now - 1 + "(QTY)" }}</th>
+                  <th>{{ now - 1 + "(Amount)" }}</th>
+                  <th>{{ now + "(QTY)" }}</th>
+                  <th>{{ now + "(Amount)" }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in sixTableData" :key="item.productName">
+                  <td>{{ item.productName }}</td>
+                  <td>{{ item.lastSaleQTY }}</td>
+                  <td>{{ item.lastSaleMoney }}</td>
+                  <td>{{ item.currentSaleQTY }}</td>
+                  <td>{{ item.currentSaleMoney }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 20px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">{{ t("analysis.title7") }}</h4>
+          <div class="flex items-start justify-between mt-3">
+            <div
+              id="serven-bar"
+              ref="servenBar"
+              style="width: 100%; height: 450px"
+            />
+          </div>
+        </el-card>
+      </re-col>
+    </el-row>
+  </div>
+</template>
+
+<script setup>
+import ReCol from "@/components/ReCol";
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive
+} from "vue";
+import * as echarts from "echarts";
+import { useI18n } from "vue-i18n";
+import {
+  getDistributorMonthAndYearSaleMoney,
+  getDistributorSearchCondition,
+  getDistributorSaleMoneyByQuarter,
+  getDistributorSaleMoneyRangeProduct,
+  getDistributorSaleQTYRangeProduct,
+  getDistributorProductSaleDataGather,
+  getDistributorProductSaleClass
+} from "@/api/biDataBoard/saleAnalysis";
+
+const { t, locale } = useI18n();
+
+const formData = reactive({
+  distributorName: "Korea-SoundCat",
+  notAllYear: true
+});
+
+const distributionList = ref([]);
+
+//图四五
+const saleOption = computed(() => {
+  return [
+    { label: "0-1K", value: "[0, 1000]" },
+    { label: "1-2K", value: "[1000, 2000]" },
+    { label: "2-3K", value: "[2000, 3000]" },
+    { label: "3-4K", value: "[3000, 4000]" },
+    { label: "4-5K", value: "[4000, 5000]" },
+
+    { label: t("analysis.K5"), value: true },
+    { label: t("analysis.limit"), value: "[null, null]" }
+  ];
+});
+const qtyOption = computed(() => {
+  return [
+    { label: "0-20pcs", value: "[0, 20]" },
+    { label: "20-40pcs", value: "[20, 40]" },
+    { label: "40-60pcs", value: "[40, 60]" },
+    { label: t("analysis.pcs60"), value: true },
+    { label: t("analysis.limit"), value: "[null, null]" }
+  ];
+});
+const fourForm = reactive({ sale: saleOption.value[0].value });
+const fiveForm = reactive({ sale: qtyOption.value[0].value });
+
+//图六
+const sixData = ref([]);
+let now = new Date().getFullYear();
+
+//图七
+const paintSeven = arr => {
+  let xData = [];
+  let yData = [];
+  arr.forEach(it => {
+    xData.push(locale.value === "zh" ? it.dateString : it.enDateString);
+    yData.push(it.total);
+  });
+  let myChart = echarts.init(document.getElementById("serven-bar"));
+  myChart.clear();
+  document.getElementById("serven-bar").removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: t("salesBoard.saleChartsOne.rolling"),
+      left: "center",
+      textStyle: {}
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    grid: {
+      left: "4%",
+      right: "4%",
+      bottom: "0",
+      top: "10%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      data: xData
+    },
+    yAxis: {
+      type: "value",
+      name: "US$",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        data: yData,
+        type: "line",
+        lineWidth: 20
+      }
+    ]
+  });
+};
+
+//图一
+const paintOne = (xData, yData1, yData2, id, title, isRotate) => {
+  let myChart = echarts.init(document.getElementById(id));
+  document.getElementById(id).removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: now - 1 + " VS " + now + " " + title,
+      left: "center"
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    legend: {
+      show: true,
+      //   data: [now - 1, now],
+      left: "right"
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        rotate: isRotate,
+        interval: 0,
+        formatter: function (value) {
+          if (value.length > 15) {
+            return value.substring(0, 15) + "...";
+          }
+          return value;
+        }
+      }
+    },
+    grid: {
+      left: "8%",
+      right: "4%",
+      bottom: "25%"
+    },
+    yAxis: {
+      type: "value",
+      name: "US$",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        name: now - 1,
+        type: "bar",
+        data: yData1
+        // barWidth: 20
+      },
+      {
+        name: now,
+        type: "bar",
+        data: yData2
+        // barWidth: 20
+      }
+    ],
+    dataZoom: [
+      {
+        show: true,
+        type: "slider",
+        shartValue: 0,
+        endValue: 30,
+        filterable: "empty",
+        width: "80%",
+        left: "center",
+        height: 0,
+        zoomLoxk: true,
+        handleSize: 0,
+        bottom: 0
+      },
+      {
+        type: "inside",
+        zoomOnMouseWheel: false,
+        moveOnMouseMove: true,
+        moveOnMouseWheel: true
+      }
+    ]
+  });
+};
+
+//图三
+const paintThree = (
+  arr1,
+  arr2,
+  arr3,
+  arr4,
+  id,
+  title1,
+  title2,
+  title3,
+  title4
+) => {
+  let myChart = echarts.init(document.getElementById(id));
+  document.getElementById(id).removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    // title: {
+    //   text: "11111",
+    //   left: "center"
+    // },
+    tooltip: {},
+    legend: { orient: "vertical", left: "right", top: "center" },
+    // grid: {
+    //   right: "10%"
+    // },
+    graphic: [
+      {
+        type: "text",
+        left: "19%", // 与第一个饼图的中心对齐
+        top: "0%",
+        style: {
+          text: title1,
+          fill: "#000",
+          font: "bold 14px sans-serif"
+        }
+      },
+      {
+        type: "text",
+        left: "69%", // 与第二个饼图的中心对齐
+        top: "0%",
+        style: {
+          text: title2,
+          fill: "#000",
+          font: "bold 14px sans-serif"
+        }
+      },
+      {
+        type: "text",
+        left: "19%",
+        top: "50%",
+        style: {
+          text: title3,
+          fill: "#000",
+          font: "bold 14px sans-serif"
+        }
+      },
+      {
+        type: "text",
+        left: "69%",
+        top: "50%",
+        style: {
+          text: title4,
+          fill: "#000",
+          font: "bold 14px sans-serif"
+        }
+      }
+    ],
+    series: [
+      {
+        name: "",
+        type: "pie",
+        radius: "40%",
+        center: ["25%", "25%"],
+        label: {
+          show: true,
+          position: "inside",
+          color: "#fff",
+          formatter: "{c}%"
+        },
+        data: arr1
+      },
+      {
+        name: "",
+        type: "pie",
+        radius: "40%",
+        center: ["75%", "25%"],
+        label: {
+          show: true,
+          position: "inside",
+          color: "#fff",
+          formatter: "{c}%"
+        },
+        data: arr2
+      },
+      {
+        name: "",
+        type: "pie",
+        radius: "40%",
+        center: ["25%", "75%"],
+        label: {
+          show: true,
+          position: "inside",
+          color: "#fff",
+          formatter: "{c}%"
+        },
+        data: arr3
+      },
+      {
+        name: "",
+        type: "pie",
+        radius: "40%",
+        center: ["75%", "75%"],
+        label: {
+          show: true,
+          position: "inside",
+          color: "#fff",
+          formatter: "{c}%"
+        },
+        data: arr4
+      }
+    ]
+  });
+};
+
+//获取图一和图七的数据
+const oneTableData = ref([]);
+const twoTableData = ref([]);
+const getOneAndSevenData = async () => {
+  const res = await getDistributorMonthAndYearSaleMoney(
+    formData.distributorName
+  );
+  if (res.code === 0 && res.data) {
+    nextTick(() => {
+      paintSeven(res.data.sortedList);
+    });
+    oneTableData.value = [];
+    twoTableData.value = [];
+
+    oneTableData.value.push(
+      {
+        year: now - 1,
+        month: new Date().getMonth(),
+        amount: res.data.lastYearLastMonthSaleMoney
+      },
+      {
+        year: now,
+        month: new Date().getMonth(),
+        amount: res.data.currentYearLastMonthSaleMoney
+      },
+      { year: "%chg", month: null, amount: res.data.monthRatio + "%" }
+    );
+    twoTableData.value.push(
+      {
+        year: now - 1 + ".1-" + (now - 1) + "." + new Date().getMonth(),
+        amount: res.data.lastYearTotalSaleMoney
+      },
+      {
+        year: now + ".1-" + now + "." + new Date().getMonth(),
+        amount: res.data.currentYearTotalSaleMoeny
+      },
+      { year: "%chg", amount: res.data.yearRatio + "%" }
+    );
+    //图一数据
+    let xData = [];
+    let yData1 = [];
+    let yData2 = [];
+    let last = [];
+    let current = [];
+    let months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ];
+
+    res.data.lastYearMonthSaleMoneyList.forEach((it, index) => {
+      last.push(months[index]);
+      yData1.push(it.total);
+    });
+    res.data.currentYearMonthSaleMoneyList.forEach((it, index) => {
+      current.push(months[index]);
+      yData2.push(it.total);
+    });
+    xData = [...new Set([...last, ...current])];
+    nextTick(() => {
+      paintOne(xData, yData1, yData2, "one-bar", t("analysis.oneTitle"), 0);
+    });
+  }
+};
+
+//获取图二的数据
+const threeTableData = ref([]);
+const getTwoData = async () => {
+  const res = await getDistributorSaleMoneyByQuarter(formData.distributorName);
+  if (res.code === 0 && res.data) {
+    threeTableData.value = [];
+    let last = res.data.lastYearQuarterData;
+    let current = res.data.currentYearQuarterData;
+    let i = 0;
+    threeTableData.value.push(
+      {
+        year: now - 1,
+        Q1: last[i].total,
+        Q2: last[i + 1].total,
+        Q3: last[i + 2].total,
+        Q4: last[i + 3].total,
+        total:
+          last[i].total +
+          last[i + 1].total +
+          last[i + 2].total +
+          last[i + 3].total
+      },
+      {
+        year: now,
+        Q1: current[i].total,
+        Q2: current[i + 1].total,
+        Q3: current[i + 2].total,
+        Q4: current[i + 3].total,
+        total:
+          current[i].total +
+          current[i + 1].total +
+          current[i + 2].total +
+          current[i + 3].total
+      }
+    );
+    threeTableData.value.push({
+      year: "%chg",
+      Q1: res.data.Q1 + "%",
+      Q2: res.data.Q2 + "%",
+      Q3: res.data.Q3 + "%",
+      Q4: res.data.Q4 + "%",
+      total:
+        (
+          ((
+            threeTableData.value[i + 1]?.total - threeTableData.value[i]?.total
+          ).toFixed(2) /
+            threeTableData.value[i]?.total) *
+          100
+        ).toFixed(2) + "%"
+    });
+  }
+};
+
+//获取图三数据
+const getThreeData = async () => {
+  const res = await getDistributorProductSaleClass(formData.distributorName);
+  if (res.code === 0 && res.data) {
+    //功能
+    const last = res.data.lastData.map(it => ({
+      name: it.productClass,
+      value: it.saleMoenyRate
+    }));
+    const current = res.data.currentData.map(it => ({
+      name: it.productClass,
+      value: it.saleMoenyRate
+    }));
+    //价格
+    const lastPrice = Object.keys(res.data.lastSaleMoneyGroupRange).map(it => ({
+      name: it,
+      value: res.data.lastSaleMoneyGroupRange[it]
+    }));
+    const currentPrice = Object.keys(res.data.currentSaleMoneyGroupRange).map(
+      it => ({
+        name: it,
+        value: res.data.currentSaleMoneyGroupRange[it]
+      })
+    );
+    const year = new Date().getFullYear();
+    const month = new Date().getMonth() - 2;
+    const title1 =
+      year -
+      1 +
+      "." +
+      month +
+      "-" +
+      (year - 1) +
+      "." +
+      new Date().getMonth() +
+      t("analysis.threeTitle1");
+    const title2 =
+      year +
+      "." +
+      month +
+      "-" +
+      year +
+      "." +
+      new Date().getMonth() +
+      t("analysis.threeTitle1");
+    const title3 =
+      year -
+      1 +
+      "." +
+      month +
+      "-" +
+      (year - 1) +
+      "." +
+      new Date().getMonth() +
+      t("analysis.threeTitle2");
+    const title4 =
+      year +
+      "." +
+      month +
+      "-" +
+      year +
+      "." +
+      new Date().getMonth() +
+      t("analysis.threeTitle2");
+
+    nextTick(() => {
+      paintThree(
+        last,
+        current,
+        lastPrice,
+        currentPrice,
+        "three-bar",
+        title1,
+        title2,
+        title3,
+        title4
+      );
+    });
+  }
+};
+
+//获取图四数据
+const getFourData = async val => {
+  val = JSON.parse(val);
+  let data = {
+    distributorName: formData.distributorName,
+    notAllYear: formData.notAllYear
+  };
+  if (typeof val == "boolean") {
+    data.noMaxData = true;
+    data.minSaleMoney = 5000;
+  } else {
+    data.maxSaleMoney = val[1];
+    data.minSaleMoney = val[0];
+  }
+  const res = await getDistributorSaleMoneyRangeProduct(data);
+  if (res.code === 0 && res.data) {
+    let xData = [];
+    let yData1 = [];
+    let yData2 = [];
+    res.data.saleMoney.forEach(it => {
+      xData.push(it.productName);
+      yData1.push(it.lastSale);
+      yData2.push(it.currentSale);
+    });
+    nextTick(() => {
+      paintOne(xData, yData1, yData2, "four-bar", t("analysis.fourTitle"), -90);
+    });
+  }
+};
+
+//获取图五数据
+const getFiveData = async val => {
+  val = JSON.parse(val);
+  let data = {
+    distributorName: formData.distributorName,
+    notAllYear: formData.notAllYear
+  };
+  if (typeof val == "boolean") {
+    data.noMaxData = true;
+    data.minSaleMoney = 5000;
+  } else {
+    data.maxSaleMoney = val[1];
+    data.minSaleMoney = val[0];
+  }
+  const res = await getDistributorSaleQTYRangeProduct(data);
+  if (res.code === 0 && res.data) {
+    let xData = [];
+    let yData1 = [];
+    let yData2 = [];
+    res.data.saleQTY.forEach(it => {
+      xData.push(it.productName);
+      yData1.push(it.lastSale);
+      yData2.push(it.currentSale);
+    });
+    nextTick(() => {
+      paintOne(xData, yData1, yData2, "five-bar", t("analysis.fiveTitle"), -90);
+    });
+  }
+};
+
+//获取图六数据
+const sixTableData = ref([]);
+const getSixData = async () => {
+  const res = await getDistributorProductSaleDataGather({
+    distributorName: formData.distributorName,
+    notAllYear: formData.notAllYear
+  });
+  if (res.code === 0 && res.data) {
+    sixTableData.value = res.data.result;
+  }
+};
+
+//获取经销商
+const distributorList = ref([]);
+const getDistributor = async () => {
+  const res = await getDistributorSearchCondition();
+  if (res.code === 0 && res.data) {
+    Object.keys(res.data).forEach(it => {
+      distributorList.value.push({
+        label: it,
+        options: res.data[it]
+      });
+    });
+  }
+};
+
+//切换全年还是同期
+const changeData = val => {
+  formData.notAllYear = val;
+  getFourData(fourForm.sale);
+  getFiveData(fiveForm.sale);
+  getSixData();
+};
+
+//获取所有数据
+const getData = () => {
+  getDistributor();
+  getOneAndSevenData();
+  getTwoData();
+  getThreeData();
+  getFourData(fourForm.sale);
+  getFiveData(fiveForm.sale);
+  getSixData();
+};
+
+//下载
+const handleDown = () => {
+  let newstr = document.getElementById("printContent").innerHTML;
+  let oldstr = document.body.innerHTML;
+  document.body.innerHTML = newstr;
+  window.print();
+  document.body.innerHTML = oldstr;
+  return false;
+};
+onMounted(() => {
+  getData();
+  window.addEventListener("setItemEvent", e => {
+    getData();
+  });
+});
+</script>
+
+<style lang="scss" scoped>
+.page-style {
+  height: 100% !important;
+}
+:deep(.el-card) {
+  --el-card-border-color: none;
+
+  /* 解决概率进度条宽度 */
+  .el-progress--line {
+    width: 85%;
+  }
+
+  /* 解决概率进度条字体大小 */
+  .el-progress-bar__innerText {
+    font-size: 15px;
+  }
+
+  /* 隐藏 el-scrollbar 滚动条 */
+  .el-scrollbar__bar {
+    display: none;
+  }
+
+  /* el-timeline 每一项上下、左右边距 */
+  .el-timeline-item {
+    margin: 0 6px;
+  }
+}
+.h4-style {
+  margin-bottom: 10px;
+}
+table {
+  text-align: center;
+  border: 2px soild #000;
+}
+table tbody {
+  display: block;
+  height: 450px;
+  overflow-y: scroll;
+}
+table thead,
+tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+table thead {
+  width: calc(100% - 1em);
+}
+.table-style {
+  text-indent: 10px;
+  border: 2px soild #000 !important;
+  //   width: -webkit-fill-available;
+  width: 80%;
+  height: 450px;
+  tr,
+  th,
+  td {
+    border: 1px solid #ebeef5;
+  }
+  th {
+    color: #909399;
+  }
+  td {
+    color: #606266;
+  }
+}
+// :deep(.el-table--fit) {
+//   height: 100% !important;
+// }
+// :deep(.el-table__inner-wrapper) {
+//   height: 100% !important;
+// }
+@media print {
+  :deep(.el-table--fit) {
+    height: 100% !important;
+  }
+  :deep(.el-table__inner-wrapper) {
+    height: 100% !important;
+  }
+  .four-style {
+    display: none;
+  }
+  .form-style,
+  .h4-style {
+    display: none;
+  }
+  .five-style {
+    page-break-before: always;
+  }
+  #six-table {
+    height: 100% !important;
+  }
+  table tbody {
+    height: auto !important;
+  }
+
+  //   #printContent {
+  //     width: 80% !important;
+  //   }
+  //   .six-style {
+  //     //   page-break-before: always;
+  //     page-break-inside: avoid;
+  //   }
+}
+</style>

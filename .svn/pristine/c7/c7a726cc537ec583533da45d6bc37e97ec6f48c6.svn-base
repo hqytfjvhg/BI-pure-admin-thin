@@ -1,0 +1,714 @@
+<template>
+  <div id="printContent" class="page-style">
+    <!-- 检索框 -->
+    <el-form :inline="true" :model="formData" style="background-color: #fff">
+      <el-form-item
+        style="margin-left: 20px"
+        class="item_select"
+        :label="t(`monthly.sales`)"
+        prop="sales"
+      >
+        <el-input-number v-model="formData.sales" :min="10000" />
+      </el-form-item>
+      <el-form-item class="form-style">
+        <el-button type="primary" @click="getMonthlyData">{{
+          t(`status.inquire`)
+        }}</el-button>
+      </el-form-item>
+      <el-form-item class="form-style">
+        <el-button type="warning" v-print="{ id: 'printContent' }">{{
+          t(`status.down`)
+        }}</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-row :gutter="24" justify="space-around" type="flex" class="onecharts">
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("monthly.title1") }}
+          </h4>
+          <div class="flex items-start justify-between mt-3">
+            <div
+              id="one-chart"
+              style="width: 100%; height: 450px"
+              ref="oneChart"
+            />
+          </div>
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("monthly.title2") }}
+          </h4>
+          <div class="flex items-start justify-between mt-3">
+            <div
+              id="two-chart"
+              style="width: 100%; height: 450px"
+              ref="twoChart"
+            />
+          </div>
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px] three-style"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <div class="flex justify-between">
+            <h4 class="h4-style">
+              {{ t("monthly.title3") }}
+            </h4>
+          </div>
+          <div class="flex items-start justify-between mt-3">
+            <div
+              id="three-chart"
+              style="width: 100%; height: 450px"
+              ref="threeBar"
+            />
+          </div>
+        </el-card>
+      </re-col>
+
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("monthly.title4") }}
+          </h4>
+          <div
+            id="four-chart"
+            style="width: 100%; height: 450px"
+            ref="fourBar"
+          />
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px] five-style"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("monthly.title5") }}
+          </h4>
+          <div
+            id="five-chart"
+            style="width: 100%; height: 450px"
+            ref="fiveBar"
+          />
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px] six-style"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 10px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">
+            {{ t("monthly.title6") }}
+          </h4>
+          <div class="flex items-center justify-around">
+            <div
+              id="six-chart"
+              style="width: 100%; height: 450px"
+              ref="sixBar"
+            />
+          </div>
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 20px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">{{ t("monthly.title7") }}</h4>
+          <div class="flex items-start justify-between mt-3">
+            <div
+              id="seven-chart"
+              ref="sevenBar"
+              style="width: 100%; height: 450px"
+            />
+          </div>
+        </el-card>
+      </re-col>
+      <re-col
+        v-motion
+        class="mb-[18px]"
+        :value="24"
+        :xs="24"
+        :initial="{
+          opacity: 0,
+          y: 100
+        }"
+        :enter="{
+          opacity: 1,
+          y: 0,
+          transition: {
+            delay: 400
+          }
+        }"
+        style="padding-left: 0; padding-right: 0; margin-top: 20px"
+      >
+        <el-card class="bar-card" shadow="never">
+          <h4 class="h4-style">{{ t("monthly.title8") }}</h4>
+          <div class="flex items-start justify-between mt-3">
+            <div
+              id="eight-chart"
+              ref="eightBar"
+              style="width: 100%; height: 450px"
+            />
+          </div>
+        </el-card>
+      </re-col>
+    </el-row>
+  </div>
+</template>
+
+<script setup>
+import ReCol from "@/components/ReCol";
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive
+} from "vue";
+import * as echarts from "echarts";
+import { useI18n } from "vue-i18n";
+import {
+  getRegionSaleData,
+  getTop10SaleMoneyRegion,
+  getLastAndCurrentYearSaleMoney,
+  getProductMarketDateToLastMonthSaleQTY,
+  getSaleContemporaneousComparison,
+  getCurrentYearTotalSaleMoney,
+  getLastMonthCompareGroupByProductClass
+} from "@/api/dataBoard/monthly";
+
+const { t, locale } = useI18n();
+
+const formData = reactive({
+  sales: 20000000
+});
+let months = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec"
+];
+//图一
+const paintOneChart = (arr, id) => {
+  let myChart = echarts.init(document.getElementById(id));
+  document.getElementById(id).removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    tooltip: {},
+    legend: { orient: "vertical", left: "right", top: "center" },
+    series: [
+      {
+        name: "",
+        type: "pie",
+        radius: "75%",
+        // center: ["25%", "25%"],
+        label: {
+          show: true,
+          // position: "inside",
+          color: "inherit",
+          formatter: "{b}  {c}%",
+          fontWeight: "bold",
+          fontSize: 14
+        },
+        data: arr
+      }
+    ]
+  });
+};
+
+//图二
+const paintTwoChart = (xData, yData, id) => {
+  let myChart = echarts.init(document.getElementById(id));
+  document.getElementById(id).removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    tooltip: {},
+    legend: { orient: "vertical", left: "right", top: "center" },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        rotate: 45,
+        interval: 0
+      }
+    },
+    yAxis: {
+      type: "value",
+      name: "US$",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      { type: "bar", data: yData, label: { show: true, position: "top" } }
+    ]
+  });
+};
+
+let now = new Date().getFullYear();
+//图三
+const paintThreeChart = (
+  xData,
+  yData1,
+  yData2,
+  id,
+  title,
+  type,
+  name1,
+  name2
+) => {
+  let myChart = echarts.init(document.getElementById(id));
+  document.getElementById(id).removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: title,
+      left: "center"
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    legend: {
+      show: true,
+      left: "center",
+      top: "bottom"
+    },
+    grid: {
+      top: "4%",
+      bottom: "2%",
+      left: "4%"
+    },
+    xAxis: {
+      type: "category",
+      data: xData,
+      axisLabel: {
+        interval: 0,
+        formatter: function (value) {
+          var re = /(.{1,10})(?=(?:\s|$))/g;
+          return value.replace(re, "$1\n"); // 每个字符换行，可根据实际需求调整
+        }
+      }
+    },
+    grid: {
+      left: "8%",
+      right: "4%",
+      bottom: "25%"
+    },
+    yAxis: {
+      type: "value",
+      name: "US$",
+      nameTextStyle: {
+        fontWeight: "600"
+      }
+    },
+    series: [
+      {
+        name: name1,
+        type: type,
+        data: yData1,
+        label: {
+          show: true,
+          position: "top"
+        }
+      },
+      {
+        name: name2,
+        type: type,
+        data: yData2,
+        label: {
+          show: true,
+          position: "top"
+        }
+      }
+    ]
+  });
+};
+
+//图六
+const paintSixChart = (xData, yData, id, title) => {
+  let myChart = echarts.init(document.getElementById(id));
+  document.getElementById(id).removeAttribute("_echarts_instance_");
+  myChart.setOption({
+    title: {
+      text: title,
+      left: "center"
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow"
+      }
+    },
+    legend: {
+      show: true,
+      //   data: [now - 1, now],
+      left: "center",
+      top: "bottom"
+    },
+    xAxis: {
+      type: "value",
+      name: "US$",
+      nameTextStyle: { fontWeight: "600" }
+    },
+    yAxis: {
+      type: "category",
+      data: xData
+    },
+    series: [
+      {
+        name: "",
+        type: "bar",
+        data: yData,
+        barWidth: 50,
+        label: {
+          show: true,
+          position: "right"
+        }
+      }
+    ]
+  });
+};
+
+//获取图一
+const getOneChart = async () => {
+  const res = await getRegionSaleData();
+  if (res.code === 0 && res.data) {
+    res.data.map(it => {
+      it.value = it.compare;
+      it.name = locale.value === "zh" ? it.name : it.enName;
+    });
+    nextTick(() => {
+      paintOneChart(res.data, "one-chart");
+    });
+  }
+};
+
+//获取图二的数据
+const getTwoChart = async () => {
+  const res = await getTop10SaleMoneyRegion();
+  if (res.code === 0 && res.data) {
+    let xData = [],
+      yData = [];
+    res.data.forEach(it => {
+      xData.push(it.countryName);
+      yData.push(it.totalData);
+    });
+    nextTick(() => {
+      paintTwoChart(xData, yData, "two-chart");
+    });
+  }
+};
+
+//获取图三数据
+const getThreeChart = async () => {
+  const res = await getLastAndCurrentYearSaleMoney();
+  if (res.code === 0 && res.data) {
+    let xData = [],
+      yData1 = [],
+      yData2 = [];
+    res.data.lastYearData.forEach(it => {
+      yData1.push(it.total);
+    });
+    res.data.currentYearData.forEach(it => {
+      xData.push(
+        locale.value === "zh" ? it.month + "月" : months[it.month - 1]
+      );
+      yData2.push(it.total);
+    });
+
+    nextTick(() => {
+      paintThreeChart(
+        xData,
+        yData1,
+        yData2,
+        "three-chart",
+        now - 1 + "/" + now + t("monthly.threeTitle"),
+        "bar",
+        now - 1,
+        now
+      );
+    });
+  }
+};
+
+//获取图四数据
+const getFourChart = async () => {
+  const res = await getProductMarketDateToLastMonthSaleQTY();
+  if (res.code === 0 && res.data) {
+    let xData = [];
+    let yData1 = [];
+    let yData2 = [];
+    res.data.result.forEach(it => {
+      xData.push(it.productName);
+      yData1.push(it.lastMonth);
+      yData2.push(it.total);
+    });
+    nextTick(() => {
+      paintThreeChart(
+        xData,
+        yData1,
+        yData2,
+        "four-chart",
+        t("monthly.fourTitle"),
+        "bar",
+        t("monthly.fourX1"),
+        t("monthly.fourX2")
+      );
+    });
+  }
+};
+
+//获取图五数据
+const getFiveChart = async () => {
+  const res = await getSaleContemporaneousComparison();
+  if (res.code === 0 && res.data) {
+    let xData = [];
+    let yData1 = [];
+    let yData2 = [];
+
+    res.data.result.forEach(it => {
+      xData.push(
+        locale.value === "zh" ? it.month + "月" : months[it.month - 1]
+      );
+      yData1.push(it.total);
+      yData2.push(it.concurrentCumulativeComparison);
+    });
+    nextTick(() => {
+      paintThreeChart(
+        xData,
+        yData1,
+        yData2,
+        "five-chart",
+        "",
+        "line",
+        t("monthly.fiveX1"),
+        t("monthly.fiveX2")
+      );
+    });
+  }
+};
+
+//获取图六数据
+const getSixChart = async () => {
+  const res = await getCurrentYearTotalSaleMoney();
+  if (res.code === 0 && res.data) {
+    let xData = [t("monthly.sixX2"), t("monthly.sixX1")];
+    let yData = [res.data, formData.sales];
+    nextTick(() => {
+      paintSixChart(xData, yData, "six-chart", now + t("monthly.sixTitle"));
+    });
+  }
+};
+
+//获取图七八
+const getSerenAndEight = async () => {
+  const res = await getLastMonthCompareGroupByProductClass();
+  if (res.code === 0 && res.data) {
+    let seven = [];
+    let xData = [],
+      yData = [];
+    res.data.compare.forEach(it => {
+      seven.push({
+        value: it.saleMoenyRate,
+        name: it.productClass
+      });
+    });
+    Object.entries(res.data.saleMoney).forEach(([key, value]) => {
+      xData.push(key);
+      yData.push(value);
+    });
+    nextTick(() => {
+      paintOneChart(seven, "seven-chart");
+      paintTwoChart(xData, yData, "eight-chart");
+    });
+  }
+};
+
+//获取所有数据
+const getMonthlyData = () => {
+  getOneChart();
+  getTwoChart();
+  getThreeChart();
+  getFourChart();
+  getFiveChart();
+  getSixChart();
+  getSerenAndEight();
+};
+
+//下载
+const handleDown = () => {
+  let newstr = document.getElementById("printContent").innerHTML;
+  let oldstr = document.body.innerHTML;
+  document.body.innerHTML = newstr;
+  window.print();
+  document.body.innerHTML = oldstr;
+  return false;
+};
+onMounted(() => {
+  getMonthlyData();
+  window.addEventListener("setItemEvent", e => {
+    getMonthlyData();
+  });
+});
+</script>
+
+<style lang="scss" scoped>
+.page-style {
+  height: 100% !important;
+}
+:deep(.el-card) {
+  --el-card-border-color: none;
+
+  /* 解决概率进度条宽度 */
+  .el-progress--line {
+    width: 85%;
+  }
+
+  /* 解决概率进度条字体大小 */
+  .el-progress-bar__innerText {
+    font-size: 15px;
+  }
+
+  /* 隐藏 el-scrollbar 滚动条 */
+  .el-scrollbar__bar {
+    display: none;
+  }
+
+  /* el-timeline 每一项上下、左右边距 */
+  .el-timeline-item {
+    margin: 0 6px;
+  }
+}
+.h4-style {
+  margin-bottom: 10px;
+}
+@media print {
+  .form-style {
+    display: none;
+  }
+}
+</style>

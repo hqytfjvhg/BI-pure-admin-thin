@@ -1,0 +1,309 @@
+<template>
+  <div>
+    <Table
+      v-model:formData="formData"
+      :page="page"
+      :pageSizes="pageSizes"
+      :showIndex="true"
+      :showPage="false"
+      :tableData="tableData"
+      @refresh="getRoleList"
+    >
+      <template #formItem>
+        <!-- <el-form-item :label="t('permission.distributors.name')"
+          ><el-input v-model="formData.name"
+        /></el-form-item>
+        <el-form-item :label="t('permission.distributors.enName')"
+          ><el-input v-model="formData.enName"
+        /></el-form-item> -->
+        <el-form-item>
+          <el-button type="success" @click="handleAdd">{{
+            t("status.add")
+          }}</el-button></el-form-item
+        >
+      </template>
+      <template #columns>
+        <el-table-column prop="name" :label="t('permission.role.name')" />
+        <el-table-column
+          prop="roleName"
+          :label="t('permission.role.roleName')"
+        />
+        <el-table-column prop="desc" :label="t('permission.role.desc')" />
+
+        <el-table-column :label="t('status.operate')">
+          <template #default="{ row }">
+            <el-text type="primary" @click="handlePermission(row)">{{
+              t("permission.role.permission")
+            }}</el-text>
+            <el-text type="primary" @click="handleEdit(row)">{{
+              t("status.edit")
+            }}</el-text>
+            <!-- <el-button type="danger" @click="handleDel(row)">{{
+              t("status.del")
+            }}</el-button> -->
+          </template>
+        </el-table-column>
+      </template>
+    </Table>
+
+    <Dialog :dialog="dialog" align-center @confirm="submitEdit">
+      <el-form ref="ruleForm" :model="editFormData" :rules="rules">
+        <el-form-item :label="t('permission.role.name')" prop="name">
+          <el-input v-model="editFormData.name"
+        /></el-form-item>
+        <el-form-item
+          v-if="dialog.title == `${t('permission.role.addTitle')}`"
+          :label="t('permission.role.roleName')"
+          prop="roleName"
+        >
+          <el-input v-model="editFormData.roleName"
+        /></el-form-item>
+        <el-form-item :label="t('permission.role.desc')" prop="desc">
+          <el-input v-model="editFormData.desc"
+        /></el-form-item>
+        <el-form-item
+          v-if="dialog.title == `${t('permission.role.addTitle')}`"
+          :label="t('permission.role.permission')"
+          prop="resourceIdList"
+        >
+          <el-tree
+            ref="tree"
+            class="tree"
+            style="max-width: 600px"
+            :data="roleResource"
+            show-checkbox
+            node-key="resourceId"
+            :default-expand-all="true"
+            :props="{ children: 'childrenList', label: 'name' }"
+            @check-change="handleCheckChange"
+          />
+        </el-form-item>
+      </el-form>
+    </Dialog>
+    <!-- 修改权限的抽屉 -->
+    <el-drawer v-model="drawer.show" :title="drawer.title">
+      <el-form :model="form" label-width="120px" :rules="rules">
+        <el-form-item :label="t('permission.role.permission')">
+          <el-tree
+            ref="tree"
+            class="tree"
+            style="max-width: 600px"
+            :data="roleResource"
+            show-checkbox
+            node-key="resourceId"
+            :default-expand-all="true"
+            :default-checked-keys="checkedList"
+            :props="{ children: 'childrenList', label: 'name' }"
+            @check-change="handleCheckChange"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div style="flex: auto">
+          <el-button @click="dialog.visible = false">取消</el-button>
+          <el-button type="primary" @click="confirm">确定</el-button>
+        </div>
+      </template>
+    </el-drawer>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive } from "vue";
+import Table from "@/components/table/index.vue";
+import { useI18n } from "vue-i18n";
+import {
+  getAllRoleNameList,
+  updateRoleInfoById,
+  addRoleAndDistributionResource,
+  getTreeResourceInfo,
+  getResourceInfoByRole,
+  updateRoleResource
+} from "@/api/permission/role";
+import Dialog from "@/components/dialog/index.vue";
+import { ElMessage } from "element-plus";
+
+const { t } = useI18n();
+
+//获取角色列表
+const tableData = ref([]);
+const getRoleList = () => {
+  getAllRoleNameList().then(res => {
+    if (res.success) {
+      tableData.value = res.data;
+    }
+  });
+};
+
+//修改角色基础信息
+const dialog = reactive({
+  show: false,
+  title: t("permission.role.editInfo"),
+  width: "50%"
+});
+const editFormData = ref({});
+const handleEdit = row => {
+  dialog.title = t("permission.role.editInfo");
+  editFormData.value = row;
+  dialog.show = true;
+};
+const ruleForm = ref(null);
+const rules = {
+  name: [
+    {
+      required: true,
+      message: t("permission.role.nameReg"),
+      trigger: "blur"
+    }
+  ],
+  roleName: [
+    {
+      required: true,
+      message: t("permission.role.roleNameReg"),
+      trigger: "blur"
+    }
+  ],
+  resourceIdList: [
+    {
+      required: true
+      // message: t("permission.role.permissionReg")
+    }
+  ]
+};
+
+//新增
+const handleAdd = async () => {
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+  await getAllResource();
+  dialog.show = true;
+  dialog.title = t("permission.role.addTitle");
+  editFormData.value = {};
+};
+//获取全部资源
+const roleResource = ref([]);
+const getAllResource = () => {
+  getTreeResourceInfo().then(res => {
+    if (res.success) {
+      roleResource.value = res.data.tree;
+    }
+  });
+};
+//新增将选择的资源绑定给表单数据
+const handleCheckChange = (data, checked, indeterminate) => {
+  if (!editFormData.value.resourceIdList) {
+    editFormData.value.resourceIdList = [];
+  }
+  //单选子级也要把父级添加进来
+  if (!checked && indeterminate) {
+    editFormData.value.resourceIdList.push(data.resourceId);
+    //选中整个父类或者单选子级
+  } else if (checked && !indeterminate) {
+    editFormData.value.resourceIdList.push(data.resourceId);
+    data.childrenList.forEach(item => {
+      editFormData.value.resourceIdList.push(item.resourceId);
+    });
+    //取消整个父级或者某个子级
+  } else if (!checked && !indeterminate) {
+    const index = editFormData.value.resourceIdList.findIndex(
+      item => item == data.resourceId
+    );
+    if (index !== -1) {
+      editFormData.value.resourceIdList.splice(index, 1);
+    }
+  }
+  editFormData.value.resourceIdList = [
+    ...new Set(editFormData.value.resourceIdList)
+  ];
+  editFormData.value.resourceIdList.sort((a, b) => a - b);
+  console.log(editFormData.value.resourceIdList);
+};
+
+//修改权限
+const drawer = reactive({
+  show: false,
+  title: t("permission.role.editPermission")
+});
+const checkedList = ref([]);
+const handlePermission = async row => {
+  editFormData.value = row;
+  editFormData.value.resourceIdList = [];
+  await getAllResource();
+  await getResourceInfoByRole(row.roleId).then(res => {
+    if (res.success) {
+      res.data.forEach(element => {
+        traverseTree(element, editFormData.value, checkedList.value);
+      });
+
+      console.log(checkedList.value, "默认选择的值");
+    }
+  });
+  drawer.show = true;
+};
+
+//处理层级关系的函数
+const traverseTree = (node, form, checkedList) => {
+  // 添加当前节点ID到resourceIdList
+  form.resourceIdList.push(node.resourceId);
+
+  // 检查是否存在子节点
+  if (node.childrenList && node.childrenList.length > 0) {
+    // 遍历所有子节点
+    node.childrenList.forEach(childNode => {
+      // 递归调用自身处理子节点
+      traverseTree(childNode, form, checkedList);
+
+      // 如果当前节点没有子节点（即最后一级），则添加到checkedList
+      if (!childNode.childrenList || childNode.childrenList.length === 0) {
+        checkedList.push(childNode.resourceId);
+      }
+    });
+  } else {
+    // 如果当前节点没有子节点（即第一级或中间某级的叶子节点），直接添加到checkedList
+    checkedList.push(node.resourceId);
+  }
+};
+
+//提交
+const submitEdit = () => {
+  if (dialog.title == t("permission.role.editInfo")) {
+    updateRoleInfoById(editFormData.value).then(res => {
+      if (res.success) {
+        ElMessage.success(t("status.pureSuccess"));
+        dialog.show = false;
+        getRoleList();
+      }
+    });
+  } else if (dialog.title == t("permission.role.addTitle")) {
+    if (ruleForm.value) {
+      ruleForm.value.validate(valid => {
+        if (valid) {
+          addRoleAndDistributionResource(editFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+              getRoleList();
+            }
+          });
+        }
+      });
+    }
+  }
+};
+//修改权限
+const confirm = () => {
+  updateRoleResource(editFormData.value).then(res => {
+    if (res.success) {
+      ElMessage.success(t("status.pureSuccess"));
+      drawer.show = false;
+    }
+  });
+};
+
+onMounted(() => {
+  getRoleList();
+});
+</script>
+
+<style lang="scss" scoped></style>

@@ -1,0 +1,75 @@
+<template>
+  <div>
+    <Table
+      :showRefresh="false"
+      :showIndex="true"
+      :showPage="false"
+      :tableData="tableData"
+      @refresh="getLogList"
+    >
+      <template #columns>
+        <el-table-column prop="name" :label="t('permission.log.name')" />
+        <el-table-column prop="size" :label="t('permission.log.size')" />
+        <el-table-column
+          prop="lastUpdateTimeString"
+          :label="t('permission.log.time')"
+        />
+        <el-table-column :label="t('status.operate')">
+          <template #default="{ row }">
+            <el-text type="primary" @click="handleDown(row)">{{
+              t("status.down")
+            }}</el-text>
+            <el-text type="danger" @click="handleDel(row)">{{
+              t("status.del")
+            }}</el-text>
+          </template>
+        </el-table-column>
+      </template>
+    </Table>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from "vue";
+import Table from "@/components/table/index.vue";
+import { useI18n } from "vue-i18n";
+import {
+  getLogFileRecords,
+  downLogFile,
+  delLogFile
+} from "@/api/permission/log";
+import { ElMessage } from "element-plus";
+
+const { t } = useI18n();
+
+//获取日志
+const tableData = ref([]);
+const getLogList = () => {
+  getLogFileRecords().then(res => {
+    if (res.data && res.success) {
+      tableData.value = res.data;
+    }
+  });
+};
+
+//删除
+const handleDel = row => {
+  delLogFile([row.name]).then(res => {
+    if (res.data && res.success) {
+      ElMessage.success(t("status.pureSuccess"));
+      getLogList();
+    }
+  });
+};
+
+//下载
+const handleDown = row => {
+  downLogFile(row.name);
+};
+
+onMounted(() => {
+  getLogList();
+});
+</script>
+
+<style lang="scss" scoped></style>

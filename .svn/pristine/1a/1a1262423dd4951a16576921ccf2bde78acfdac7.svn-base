@@ -1,0 +1,25 @@
+const Layout = () => import("@/layout/index.vue");
+//销售看板
+export default {
+  path: "/salesDistributor",
+  component: Layout,
+  name: "salesDistributor",
+  meta: {
+    title: "menus.salesDistributor",
+    icon: "ep:lollipop",
+    rank: 2
+  },
+
+  children: [
+    // 图一
+    {
+      path: "/salesBoard/saleChartsOne",
+      name: "saleChartsOne",
+      component: () => import("@/views/biDataBoard/saleChartsOne.vue"),
+      meta: {
+        title: "menus.saleChartsOne"
+        // roles: ["admin", "common"]
+      }
+    }
+  ]
+};

@@ -1,0 +1,127 @@
+<template>
+  <div>
+    <Table
+      v-model:formData="formData"
+      :showIndex="true"
+      :showPage="false"
+      :tableData="tableData"
+      :showRefresh="false"
+    >
+      <template #funButton>
+        <!-- <el-button type="success" @click="handleAdd">{{
+          t("status.add")
+        }}</el-button> -->
+        <el-button type="warning" @click="handleDown">{{
+          t("status.down")
+        }}</el-button>
+
+        <el-radio-group v-model="currency" style="margin-left: 12px">
+          <el-radio-button
+            :label="t('permission.sales.million')"
+            value="million"
+          />
+          <el-radio-button
+            v-for="item in currencyOption"
+            :key="item.id"
+            :label="locale === 'zh' ? item.name : item.enName"
+            :value="item.id"
+          />
+        </el-radio-group>
+      </template>
+      <template #columns>
+        <el-table-column prop="name" :label="t('permission.sales.name')">
+          <el-table-column prop="name" label="Region" />
+        </el-table-column>
+        <el-table-column
+          prop="currentMonthSale"
+          :label="t('permission.sales.cMonth')"
+        >
+          <el-table-column prop="currentMonthSale" label="Sales this month" />
+        </el-table-column>
+        <el-table-column
+          prop="lastMonthSale"
+          :label="t('permission.sales.lMonth')"
+        >
+          <el-table-column prop="lastMonthSale" label="Last month's sales"
+        /></el-table-column>
+        <el-table-column
+          prop="lastQuarterSale"
+          :label="t('permission.sales.lQuarter')"
+        >
+          <el-table-column prop="lastQuarterSale" label="Last quarter sales"
+        /></el-table-column>
+        <el-table-column
+          prop="lastYearCurrentMonthSale"
+          :label="t('permission.sales.lYear')"
+        >
+          <el-table-column
+            prop="lastYearCurrentMonthSale"
+            label="Sales in the same period last year"
+        /></el-table-column>
+        <el-table-column
+          prop="population"
+          :label="t('permission.sales.people')"
+        >
+          <el-table-column prop="population" label="Population"
+        /></el-table-column>
+        <el-table-column
+          prop="perCapitaIncome"
+          :label="t('permission.sales.perCapita')"
+        >
+          <el-table-column prop="perCapitaIncome" label="GNI Per Capita"
+        /></el-table-column>
+      </template>
+    </Table>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive, computed } from "vue";
+import Table from "@/components/table/index.vue";
+import { useI18n } from "vue-i18n";
+import { selectAllAreaSaleData } from "@/api/permission/sales";
+import { getAllRateInfo } from "@/api/permission/currency";
+import { downExcel } from "@/utils/excel";
+
+const { t, locale } = useI18n();
+
+const currency = ref("million");
+const currencyOption = ref([]);
+const getCurrencyList = () => {
+  getAllRateInfo().then(res => {
+    if (res.success) {
+      currencyOption.value = res.data;
+    }
+  });
+};
+
+const tableData = ref([]);
+const getSalesList = () => {
+  const data = { currencyId: null, isMillion: false };
+  if (currency.value === "million") {
+    data.isMillion = true;
+    currency.value = 1;
+  }
+  data.currencyId = currency.value;
+  selectAllAreaSaleData(data).then(res => {
+    if (res.success) {
+      tableData.value = res.data;
+    }
+  });
+};
+
+//下载
+const handleDown = () => {
+  downExcel(tableData);
+};
+onMounted(() => {
+  getCurrencyList();
+  getSalesList();
+});
+</script>
+
+<style lang="scss" scoped>
+:deep(.el-radio-group) {
+  font-size: 16px !important;
+}
+</style>

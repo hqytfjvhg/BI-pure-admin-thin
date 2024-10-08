@@ -1,0 +1,162 @@
+<template>
+  <div>
+    <Table
+      :page="page"
+      :showIndex="true"
+      :showPage="false"
+      :tableData="tableData"
+      :showRefresh="true"
+      :showSum="true"
+      id="table"
+      @refresh="getUSA"
+    >
+      <template #formItem>
+        <el-form-item :label="t('saleUSA.distributor')">
+          <el-select
+            v-model="distributorList"
+            style="width: 200px"
+            clearable
+            filterable
+            multiple
+            collapse-tags
+          >
+            <el-option
+              v-for="item in option"
+              :key="item.name"
+              :label="item.name"
+              :value="item.name"
+            />
+          </el-select>
+        </el-form-item>
+      </template>
+      <!-- <template #funButton>
+        <el-upload
+          class="upload-demo"
+          action="#"
+          accept=".xlsx,.xls"
+          :on-remove="handleRemove"
+          :on-exceed="handleExceed"
+          :on-change="loadFile"
+          :auto-upload="false"
+          :show-file-list="false"
+          :limit="1"
+          ref="uploadRef"
+          style="width: 100%"
+        >
+          <el-button type="warning">{{ t("status.export") }}</el-button>
+        </el-upload>
+
+        <el-button type="warning" @click="handleDown">{{
+          t("status.down")
+        }}</el-button>
+        <el-radio-group
+          v-model="currency"
+          style="margin-left: 12px"
+          @change="changeRate"
+        >
+          <el-radio-button
+            :label="t('saleUSA.million')"
+            value="million"
+          />
+          <el-radio-button :label="t('saleUSA.cny')" value="cny" />
+        </el-radio-group>
+      </template> -->
+      <template #columns>
+        <el-table-column
+          prop="distributorName"
+          :label="t('saleUSA.distributor')"
+          fixed="left"
+          width="180"
+        />
+        <el-table-column prop="jan" :label="t('saleUSA.jan')" min-width="120" />
+        <el-table-column prop="feb" :label="t('saleUSA.feb')" min-width="120" />
+        <el-table-column prop="mar" :label="t('saleUSA.mar')" min-width="120" />
+        <el-table-column prop="apr" :label="t('saleUSA.apr')" min-width="120" />
+        <el-table-column prop="may" :label="t('saleUSA.may')" min-width="120" />
+        <el-table-column prop="jun" :label="t('saleUSA.jun')" min-width="120" />
+        <el-table-column prop="jul" :label="t('saleUSA.jul')" min-width="120" />
+        <el-table-column prop="aug" :label="t('saleUSA.aug')" min-width="120" />
+        <el-table-column prop="sep" :label="t('saleUSA.sep')" min-width="120" />
+        <el-table-column prop="oct" :label="t('saleUSA.oct')" min-width="120" />
+        <el-table-column prop="nov" :label="t('saleUSA.nov')" min-width="120" />
+        <el-table-column prop="dec" :label="t('saleUSA.dec')" min-width="120" />
+        <el-table-column
+          prop="total"
+          :label="t('saleUSA.total')"
+          min-width="120"
+        />
+        <el-table-column
+          prop="lastYearTotal"
+          :label="t('saleUSA.last')"
+          min-width="120"
+        />
+        <el-table-column
+          prop="compare"
+          :label="t('saleUSA.yoy')"
+          min-width="120"
+        />
+
+        <!-- <el-table-column :label="t('status.operate')" fixed="right" width="120">
+          <template #default="{ row }">
+            <el-text type="primary" @click="handleEdit(row)">
+              {{ t("status.edit") }}
+            </el-text>
+            <el-text type="primary" @click="handleDel(row)">
+              {{ t("status.del") }}
+            </el-text>
+          </template>
+        </el-table-column> -->
+      </template>
+    </Table>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive, computed } from "vue";
+import Table from "@/components/table/index.vue";
+import { useI18n } from "vue-i18n";
+import { storageLocal } from "@pureadmin/utils";
+import { getAmericaRegionAllDistributorEveryMonthSale } from "@/api/biDataBoard/saleUSA";
+
+const { t, locale } = useI18n();
+
+const resourceList = storageLocal().getItem("user-info")?.resourceInfoVoList;
+
+function findAmericaChildren(nodeArray) {
+  for (let node of nodeArray) {
+    if (node.level === 4 && node.name === "America") {
+      return node.childrenList;
+    } else {
+      if (node.childrenList && node.childrenList.length > 0) {
+        let result = findAmericaChildren(node.childrenList);
+        if (result) {
+          return result;
+        }
+      }
+    }
+  }
+  return null; // 如果没有找到，则返回 null
+}
+
+const option = findAmericaChildren(resourceList);
+const distributorList = ref([]);
+
+const tableData = ref([]);
+
+const getUSA = () => {
+  const data = distributorList.value ? distributorList.value : [];
+  console.log(data);
+
+  getAmericaRegionAllDistributorEveryMonthSale(data).then(res => {
+    if (res.success) {
+      tableData.value = res.data.data;
+    }
+  });
+};
+
+onMounted(() => {
+  getUSA();
+});
+</script>
+
+<style lang="scss" scoped></style>

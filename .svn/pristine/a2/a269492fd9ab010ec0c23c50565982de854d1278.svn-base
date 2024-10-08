@@ -1,0 +1,62 @@
+<template>
+  <el-row :gutter="24" justify="space-around" type="flex">
+    <re-col
+      v-motion
+      class="mb-[18px]"
+      :value="24"
+      :xs="24"
+      :initial="{
+        opacity: 0,
+        y: 100
+      }"
+      :enter="{
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 400
+        }
+      }"
+      style="padding-left: 0; padding-right: 0"
+    >
+      <el-card class="bar-card" shadow="never">
+        <div class="flex justify-between">
+          <!-- <span class="font-medium text-md">{{
+            t("salesBoard.sales")
+          }}</span> -->
+          <el-form :inline="true" :model="formData">
+            <el-form-item :label="t('salesBoard.common.date')">
+              <el-date-picker
+                v-model="formData.date"
+                type="date"
+                placeholder="Pick a Date"
+                format="YYYY/MM/DD"
+                value-format="YYYY-MM-DD"
+              />
+            </el-form-item>
+            <el-form-item :label="t('salesBoard.common.customer')">
+              <el-select v-model="formData.customer" style="width: 240px">
+                <el-option
+                  v-for="item in customerOptions"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
+        <div class="flex items-start justify-between mt-3">
+          <div
+            id="twenty-bar"
+            ref="twentyBarChart"
+            style="width: 100%; height: 600px"
+          />
+        </div>
+      </el-card>
+    </re-col>
+  </el-row>
+</template>
+
+<script setup></script>
+
+<style lang="scss" scoped></style>

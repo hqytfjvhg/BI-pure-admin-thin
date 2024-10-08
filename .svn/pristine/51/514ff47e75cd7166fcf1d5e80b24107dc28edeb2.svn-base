@@ -1,0 +1,398 @@
+<script setup lang="js">
+import { onMounted, ref, nextTick } from "vue";
+import * as echarts from "echarts";
+import { useI18n } from "vue-i18n";
+import {
+  getTotalSaleMoneyTop10Product,
+  getLast12MonthTotalSaleMoneyTop10Product,
+  getLastThreeMonthSaleMoney,
+  getLastYearAndCurrentYearTotalSaleMoney,
+  getLast5YearTotalSaleMoney,
+  getAllSaleMoneyTop10DistributorName
+} from "@/api/home/index";
+
+defineOptions({
+  name: "Welcome"
+});
+const { t } = useI18n();
+
+const pieTitle = ref([t("home.lastFiveYear"), t("home.lastMonth")]);
+const barTitle = ref([t("home.topDistributor"), t("home.topProduct")]);
+
+const pieSetOption = ref({
+  title: {
+    text: "",
+    textStyle: {
+      fontSize: 16,
+      fontWeight: "normal"
+    },
+    top: "bottom",
+    left: "center"
+  },
+  tooltip: {
+    trigger: "item"
+  },
+  grid: {
+    left: "3%",
+    // right: "4%",
+    bottom: "5%",
+    top: "3%",
+    containLabel: true
+  },
+  // legend: {
+  //   orient: 'vertical',
+  //   left: 'left'
+  // },
+  series: [
+    {
+      name: "Access From",
+      type: "pie",
+      radius: "80%",
+      label: {
+        position: "inside",
+        color: "#fff",
+        width: 50
+      },
+      data: [],
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: "rgba(0, 0, 0, 0.5)"
+        }
+      }
+    }
+  ]
+});
+
+const barSetOption = ref({
+  title: {
+    text: "",
+    left: "center",
+    top: "bottom",
+    textStyle: {
+      fontSize: 16,
+      fontWeight: "normal"
+    }
+  },
+  tooltip: {
+    trigger: "axis",
+    axisPointer: {
+      type: "shadow"
+    }
+  },
+  // legend: {
+  //   data: xData.value[index]
+  //   // top: "2%",
+  //   // icon: "rect",
+  //   // left: "2%"
+  // },
+  // grid: {
+  //   left: "4%",
+  //   right: "4%",
+  //   bottom: "0",
+  //   top: "10%",
+  //   containLabel: true
+  // },
+  xAxis: {
+    type: "category",
+    data: [],
+    axisLabel: {
+      width: 50,
+      interval: 1,
+      formatter: function (value) {
+        var re = /(.{1,5})(?=(?:\s|$))/g;
+        return value.replace(re, "$1\n"); // 每个字符换行，可根据实际需求调整
+      }
+    }
+  },
+  yAxis: {
+    type: "value"
+    // name: "$",
+    // nameTextStyle: {
+    //   fontWeight: "600"
+    // }
+  },
+  series: [
+    {
+      data: [],
+      type: "bar",
+      barWidth: 30
+    }
+  ]
+});
+
+const barThreeSet = ref({
+  title: {
+    text: t("home.lastThree"),
+    left: "center",
+    top: "bottom",
+    textStyle: {
+      fontSize: 16,
+      fontWeight: "normal"
+    }
+  },
+  tooltip: {
+    trigger: "axis",
+    axisPointer: {
+      type: "shadow"
+    }
+  },
+  xAxis: {
+    type: "category",
+    data: []
+  },
+  yAxis: {
+    type: "value",
+    name: "US$M"
+  },
+  series: [
+    {
+      data: [],
+      type: "bar",
+      barWidth: 30
+    }
+  ]
+});
+
+const toolbox = ref({
+  feature: {
+    myTool: {
+      show: true, //是否显示
+      title: t("home.switch"), //鼠标悬空的提示文字
+      icon: "path://M514 114.3c-219.9 0-398.9 178.9-398.9 398.8 0.1 220 179 398.9 398.9 398.9 219.9 0 398.8-178.9 398.8-398.8S733.9 114.3 514 114.3z m218.3 489v1.7c0 0.5-0.1 1-0.1 1.6 0 0.3 0 0.6-0.1 0.9 0 0.5-0.1 1-0.2 1.5 0 0.3-0.1 0.7-0.1 1-0.1 0.4-0.1 0.8-0.2 1.2-0.1 0.4-0.2 0.9-0.2 1.3-0.1 0.3-0.1 0.6-0.2 0.8-0.1 0.6-0.3 1.2-0.4 1.8 0 0.1-0.1 0.2-0.1 0.3-2.2 8.5-6.6 16.6-13.3 23.3L600.7 755.4c-20 20-52.7 20-72.6 0-20-20-20-52.7 0-72.6l28.9-28.9H347c-28.3 0-51.4-23.1-51.4-51.4 0-28.3 23.1-51.4 51.4-51.4h334c13.2 0 26.4 5 36.4 15s15 23.2 15 36.4c0 0.3-0.1 0.6-0.1 0.8z m0.1-179.5c0 28.3-23.1 51.4-51.4 51.4H347c-13.2 0-26.4-5-36.4-15s-15-23.2-15-36.4v-0.8-1.6c0-0.5 0.1-1.1 0.1-1.6 0-0.3 0-0.6 0.1-0.9 0-0.5 0.1-1 0.2-1.5 0-0.3 0.1-0.7 0.1-1 0.1-0.4 0.1-0.8 0.2-1.2 0.1-0.4 0.2-0.9 0.2-1.3 0.1-0.3 0.1-0.6 0.2-0.8 0.1-0.6 0.3-1.2 0.4-1.8 0-0.1 0.1-0.2 0.1-0.3 2.2-8.5 6.6-16.6 13.3-23.3l116.6-116.6c20-20 52.7-20 72.6 0 20 20 20 52.7 0 72.6L471 372.5h210c28.2 0 51.4 23.1 51.4 51.3z", //这个是阿里icon svg 后 b的全部字符串
+
+      onclick: o => {
+        //参数o 是图表的option 我这里并没有用到
+        pie.series[0].data = pieTwoData.value.qty;
+        let myPieTwo = echarts.init(document.getElementById("pie-two"));
+        myPieTwo.setOption(pie);
+
+        bar.xAxis.data = barTwoData.value.xAxisTwo;
+        bar.series[0].data = pieTwoData.value.qty;
+        let myBarTwo = echarts.init(document.getElementById("bar-two"));
+        myBarTwo.setOption(bar);
+      }
+    }
+  }
+});
+
+//用来创建副本数据
+let pie;
+let bar;
+//绘制图
+const painting = () => {
+  let myPieOne = echarts.init(document.getElementById("pie-one"));
+  pieSetOption.value.title.text = pieTitle.value[0];
+  myPieOne.setOption(pieSetOption.value);
+
+  let myPieTwo = echarts.init(document.getElementById("pie-two"));
+  pieSetOption.value.title.text = pieTitle.value[1];
+  if (myPieTwo) {
+    pie = JSON.parse(JSON.stringify(pieSetOption.value));
+    pie.toolbox = toolbox.value;
+    pie.series[0].data = pieTwoData.value.saleMoney;
+  }
+  myPieTwo.setOption(pie);
+
+  let myBarOne = echarts.init(document.getElementById("bar-one"));
+  barSetOption.value.title.text = barTitle.value[0];
+  myBarOne.setOption(barSetOption.value);
+
+  let myBarTwo = echarts.init(document.getElementById("bar-two"));
+  barSetOption.value.title.text = barTitle.value[1];
+  if (myBarTwo) {
+    bar = JSON.parse(JSON.stringify(barSetOption.value));
+    bar.xAxis.data = barTwoData.value.xAxisOne;
+    bar.series[0].data = barTwoData.value.saleMoney;
+  }
+  myBarTwo.setOption(bar);
+
+  let myBarThree = echarts.init(document.getElementById("bar-three"));
+  myBarThree.setOption(barThreeSet.value);
+};
+
+//获取柱状图三的数据
+const getBarThree = () => {
+  getLastThreeMonthSaleMoney().then(res => {
+    res.data.forEach(item => {
+      item.value = (item.total / 1000000).toFixed(3);
+      item.name = item.dateString;
+      barThreeSet.value.xAxis.data.push(item.dateString);
+    });
+    barThreeSet.value.series[0].data = res.data;
+    painting();
+  });
+};
+
+//获取饼图二的数据
+const pieTwoData = ref({});
+const getPieTwo = () => {
+  getLast12MonthTotalSaleMoneyTop10Product().then(res => {
+    res.data.saleMoney.forEach(item => {
+      item.value = item.data;
+    });
+    res.data.qty.forEach(item => {
+      item.value = item.data;
+    });
+    pieTwoData.value = res.data;
+    // painting();
+  });
+};
+
+//获取柱状图二的数据
+const barTwoData = ref({});
+const getBarTwo = () => {
+  getTotalSaleMoneyTop10Product().then(res => {
+    barTwoData.value.xAxisOne = [];
+    barTwoData.value.xAxisTwo = [];
+    res.data.saleMoney.forEach(item => {
+      item.value = item.data;
+      barTwoData.value.xAxisOne.push(item.name);
+    });
+    res.data.qty.forEach(item => {
+      item.value = item.data;
+      barTwoData.value.xAxisTwo.push(item.name);
+    });
+    barTwoData.value.saleMoney = res.data.saleMoney;
+    barTwoData.value.qty = res.data.qty;
+    // console.log(barTwoData.value);
+    painting();
+  });
+};
+
+//直接获取三个值的数据
+const threeValue = ref({});
+const getThreeValue = () => {
+  getLastYearAndCurrentYearTotalSaleMoney().then(res => {
+    threeValue.value = res.data;
+  });
+};
+//获取饼图一的数据
+const getPieOne = () => {
+  getLast5YearTotalSaleMoney().then(res => {
+    res.data.forEach(item => {
+      item.value = item.data;
+    });
+    pieSetOption.value.series[0].data = res.data;
+  });
+};
+
+//获取柱状图一的数据
+const barOneData = ref([]);
+const getBarOne = () => {
+  getAllSaleMoneyTop10DistributorName().then(res => {
+    barOneData.value.xAxis = [];
+    res.data.forEach(item => {
+      item.value = item.data;
+      barOneData.value.xAxis.push(item.name);
+    });
+    barOneData.value.yAxis = res.data;
+    barSetOption.value.xAxis.data = barOneData.value.xAxis;
+    barSetOption.value.series[0].data = barOneData.value.yAxis;
+  });
+};
+
+const getPainting = async () => {
+  await getPieOne();
+  await getPieTwo();
+  await getBarOne();
+  await getBarTwo();
+  await getBarThree();
+  await getThreeValue();
+
+  nextTick(() => {
+    painting();
+  });
+};
+
+onMounted(() => {
+  // getBarThree();
+  getPainting();
+});
+</script>
+
+<template>
+  <div>
+    <!-- <h1>正在开发中，敬请期待...</h1> -->
+    <el-row>
+      <el-col :span="12">
+        <el-row>
+          <el-col :span="12" class="col-style">
+            <div>
+              Overview 总览
+
+              <el-card class="border-box">
+                <el-tooltip
+                  effect="light"
+                  placement="top"
+                  :content="$t('home.latest')"
+                >
+                  <div>
+                    {{
+                      (threeValue.currentYearData?.data / 1000000).toFixed(2)
+                    }}
+                  </div></el-tooltip
+                >
+                <el-tooltip
+                  effect="light"
+                  placement="top"
+                  :content="$t('home.lastYear')"
+                >
+                  <div>
+                    {{ (threeValue.lastYearData?.data / 1000000).toFixed(2) }}
+                  </div></el-tooltip
+                >
+                <el-tooltip
+                  effect="light"
+                  placement="top"
+                  :content="$t('home.value')"
+                >
+                  <div>{{ threeValue.Compare }}%</div></el-tooltip
+                >
+              </el-card>
+            </div>
+            <div id="bar-three" style="width: 100%; height: 400px" />
+          </el-col>
+          <el-col :span="12">
+            <div id="pie-one" style="width: 100%; height: 400px" />
+            <div id="pie-two" style="width: 100%; height: 400px" />
+          </el-col>
+        </el-row>
+      </el-col>
+      <el-col :span="12">
+        <div id="bar-one" style="width: 100%; height: 400px" />
+        <div id="bar-two" style="width: 100%; height: 400px" />
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.border-box {
+  margin-top: 20px;
+  // border: 2px solid black;
+  // display: flex;
+  // flex-direction: column;
+  // justify-content: space-around;
+  width: 80%;
+  min-width: 230px;
+  height: 300px;
+  :deep(.el-card__body) {
+    height: 100% !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+  }
+  div {
+    font-weight: 700;
+    font-size: 40px;
+  }
+}
+.col-style {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+</style>

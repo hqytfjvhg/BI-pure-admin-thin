@@ -1,0 +1,164 @@
+<template>
+  <div>
+    <Table
+      :showIndex="true"
+      :showPage="false"
+      :tableData="tableData"
+      :showRefresh="false"
+      id="table"
+    >
+      <template #funButton>
+        <!-- <el-button type="success" @click="handleAdd">{{
+          t("status.add")
+        }}</el-button> -->
+        <!-- <el-button type="warning" @click="handleDown">{{
+          t("status.down")
+        }}</el-button> -->
+        <el-button type="warning" @click="Down">{{
+          t("status.down")
+        }}</el-button>
+
+        <el-radio-group
+          v-model="currency"
+          style="margin-left: 12px"
+          @change="changeRate"
+        >
+          <el-radio-button
+            :label="t('permission.sales.million')"
+            value="million"
+          />
+          <el-radio-button
+            v-for="item in currencyOption"
+            :key="item.id"
+            :label="locale === 'zh' ? item.name : item.enName"
+            :value="item.id"
+          />
+        </el-radio-group>
+      </template>
+      <template #columns>
+        <el-table-column prop="name" :label="t('permission.sales.name')">
+          <el-table-column prop="name" label="Region" />
+        </el-table-column>
+        <el-table-column
+          prop="currentMonthSale"
+          :label="t('permission.sales.cMonth')"
+        >
+          <el-table-column prop="currentMonthSale" label="Sales this month" />
+        </el-table-column>
+        <el-table-column
+          prop="lastMonthSale"
+          :label="t('permission.sales.lMonth')"
+        >
+          <el-table-column prop="lastMonthSale" label="Last month's sales"
+        /></el-table-column>
+        <el-table-column
+          prop="lastQuarterSale"
+          :label="t('permission.sales.lQuarter')"
+        >
+          <el-table-column prop="lastQuarterSale" label="Last quarter sales"
+        /></el-table-column>
+        <el-table-column
+          prop="lastYearCurrentMonthSale"
+          :label="t('permission.sales.lYear')"
+        >
+          <el-table-column
+            prop="lastYearCurrentMonthSale"
+            label="Sales in the same period last year"
+        /></el-table-column>
+        <el-table-column
+          prop="population"
+          :label="t('permission.sales.people')"
+        >
+          <el-table-column prop="population" label="Population"
+        /></el-table-column>
+        <el-table-column
+          prop="perCapitaIncome"
+          :label="t('permission.sales.perCapita')"
+        >
+          <el-table-column prop="perCapitaIncome" label="GNI Per Capita"
+        /></el-table-column>
+      </template>
+    </Table>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive, computed } from "vue";
+import Table from "@/components/table/index.vue";
+import { useI18n } from "vue-i18n";
+import { selectAllAreaSaleData } from "@/api/permission/sales";
+import { getAllRateInfo } from "@/api/permission/currency";
+import { downExcel } from "@/utils/excel";
+import { down } from "@/utils/exceltable";
+
+const { t, locale } = useI18n();
+
+const currency = ref("million");
+const currencyOption = ref([]);
+const getCurrencyList = () => {
+  getAllRateInfo().then(res => {
+    if (res.success) {
+      currencyOption.value = res.data;
+    }
+  });
+};
+
+const tableData = ref([]);
+const getSalesList = () => {
+  const data = { isMillion: false };
+  if (currency.value === "million") {
+    data.isMillion = true;
+  } else {
+    data.currencyId = currency.value;
+  }
+
+  selectAllAreaSaleData(data).then(res => {
+    if (res.success) {
+      tableData.value = res.data;
+    }
+  });
+};
+
+//切换汇率
+const changeRate = val => {
+  currency.value = val;
+  getSalesList();
+};
+
+//下载
+const handleDown = () => {
+  downExcel(tableData.value);
+  // var wb = XLSX.utils.table_to_book(document.querySelector("#table"));
+  // var wbout = XLSX.write(wb, {
+  //   bookType: "xlsx",
+  //   book: true,
+  //   type: "array"
+  // });
+  // try {
+  //   FileSaver.saveAs(
+  //     // Blob: 对象表示一个不可变 原始数据的类文件对象,不一定是JS原生格式的数据。
+  //     // File: 基于Blob，继承了blob的功能并将其扩展使其支持用户系统上的文件。
+  //     new Blob([wbout], { type: "appliction/octet-stream" }),
+  //     // 设置导出的文件名称可随意
+  //     "result.xlsx"
+  //   );
+  // } catch (e) {
+  //   if (typeof console != "undefined") console.log(e, wbout);
+  // }
+  // // 返回一个新创建的Blob对象，其内容由参数中给定的数组串联组成。
+  // return wbout;
+};
+const Down = () => {
+  down(tableData.value, t("permission.sales.title"));
+};
+onMounted(() => {
+  getCurrencyList();
+  getSalesList();
+});
+</script>
+
+<style lang="scss" scoped>
+:deep(.el-radio-group) {
+  font-size: 16px !important;
+}
+</style>

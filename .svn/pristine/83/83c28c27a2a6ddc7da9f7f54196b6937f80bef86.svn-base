@@ -1,0 +1,220 @@
+<template>
+  <div>
+    <Table
+      v-model:formData="formData"
+      :showIndex="true"
+      :showPage="false"
+      :tableData="tableData"
+      :showRefresh="false"
+    >
+      <template #formItem>
+        <!-- <el-form-item :label="t('permission.distributors.name')"
+          ><el-input v-model="formData.name"
+        /></el-form-item>
+        <el-form-item :label="t('permission.distributors.enName')"
+          ><el-input v-model="formData.enName"
+        /></el-form-item> -->
+        <el-form-item>
+          <el-button type="success" @click="handleAdd">{{
+            t("status.add")
+          }}</el-button></el-form-item
+        >
+      </template>
+      <template #columns>
+        <el-table-column
+          :prop="locale === 'zh' ? 'name' : 'enName'"
+          :label="t('permission.brand.name')"
+        />
+        <!-- <el-table-column prop="enName" :label="t('permission.brand.enName')" /> -->
+        <el-table-column prop="remark" :label="t('permission.brand.desc')" />
+
+        <!-- <el-table-column
+          prop="createTime"
+          :label="t('permission.brand.time')"
+        /> -->
+
+        <el-table-column :label="t('status.operate')">
+          <template #default="{ row }">
+            <el-popover
+              effect="light"
+              placement="top"
+              trigger="click"
+              width="300"
+            >
+              <ul v-if="bindData.length > 0">
+                <li v-for="(item, index) in bindData" :key="item">
+                  {{ index + 1 + "、" + item }}
+                </li>
+              </ul>
+              <span v-else>{{ t("permission.brand.no") }}</span>
+              <template #reference>
+                <el-text type="primary" @click="handleBandSeries(row)">{{
+                  t("status.see")
+                }}</el-text>
+              </template>
+            </el-popover>
+            <el-text type="primary" @click="handleEdit(row)">{{
+              t("status.edit")
+            }}</el-text>
+            <el-text type="primary" @click="handleDel(row)">{{
+              t("status.del")
+            }}</el-text>
+          </template>
+        </el-table-column>
+      </template>
+    </Table>
+
+    <Dialog :dialog="dialog" align-center @confirm="submitEdit">
+      <el-form
+        ref="ruleForm"
+        :model="editFormData"
+        :rules="rules"
+        :label-position="right"
+        label-width="auto"
+        style="max-width: 600px"
+      >
+        <el-form-item :label="t('permission.brand.name')" prop="name">
+          <el-input v-model="editFormData.name"
+        /></el-form-item>
+        <el-form-item :label="t('permission.brand.enName')" prop="enName">
+          <el-input v-model="editFormData.enName"
+        /></el-form-item>
+        <el-form-item :label="t('permission.brand.desc')" prop="remark">
+          <el-input v-model="editFormData.remark"
+        /></el-form-item>
+      </el-form>
+    </Dialog>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive, computed } from "vue";
+import Table from "@/components/table/index.vue";
+import { useI18n } from "vue-i18n";
+import Dialog from "@/components/dialog/index.vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  getAllBrand,
+  delBrand,
+  addBrand,
+  updateBrand,
+  getAllSeriesByBrandId
+} from "@/api/permission/brand";
+
+const { t, locale } = useI18n();
+
+const ruleForm = ref(null);
+const editFormData = ref({});
+const dialog = reactive({
+  show: false,
+  title: t("permission.brand.addInfo"),
+  width: "50%"
+});
+const rules = computed(() => {
+  return {
+    name: [
+      {
+        required: true,
+        message: t("permission.brand.nameReg"),
+        trigger: "bulr"
+      }
+    ],
+    enName: [
+      {
+        required: true,
+        message: t("permission.brand.enNameReg"),
+        trigger: "bulr"
+      }
+    ]
+  };
+});
+
+//查询
+const tableData = ref([]);
+const getBrandList = () => {
+  getAllBrand().then(res => {
+    if (res.data && res.success) {
+      tableData.value = res.data;
+    }
+  });
+};
+
+//新增
+const handleAdd = () => {
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+  dialog.show = true;
+  dialog.title = t("permission.brand.addInfo");
+  editFormData.value = {};
+};
+//修改
+const handleEdit = row => {
+  if (ruleForm.value) {
+    ruleForm.value.resetFields();
+  }
+  dialog.show = true;
+  dialog.title = t("permission.brand.editInfo");
+  editFormData.value = JSON.parse(JSON.stringify(row));
+};
+
+//删除
+const handleDel = row => {
+  ElMessageBox.confirm(t("status.delReg"), t("status.warn"), {
+    confirmButtonText: t("status.confirm"),
+    cancelButtonText: t("status.cancle"),
+    type: "warning"
+  }).then(() => {
+    delBrand([row.id]).then(res => {
+      if (res.success) {
+        ElMessage.success(t("status.pureSuccess"));
+        getBrandList();
+      }
+    });
+  });
+};
+
+//提交
+const submitEdit = () => {
+  if (ruleForm.value) {
+    ruleForm.value.validate(valid => {
+      if (valid) {
+        //新增
+        if (dialog.title == t("permission.brand.addInfo")) {
+          addBrand(editFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+              getBrandList();
+            }
+          });
+        } else {
+          updateBrand(editFormData.value).then(res => {
+            if (res.success) {
+              ElMessage.success(t("status.pureSuccess"));
+              dialog.show = false;
+              getBrandList();
+            }
+          });
+        }
+      }
+    });
+  }
+};
+//查看系列
+const bindData = ref([]);
+const handleBandSeries = row => {
+  bindData.value = [];
+  getAllSeriesByBrandId(row.id).then(res => {
+    if (res.success) {
+      bindData.value = res.data;
+    }
+  });
+};
+
+onMounted(() => {
+  getBrandList();
+});
+</script>
+
+<style lang="scss" scoped></style>
